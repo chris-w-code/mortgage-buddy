@@ -3,193 +3,73 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src data:; connect-src 'none'; form-action 'none'; base-uri 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; manifest-src 'self'; connect-src 'none'; form-action 'self'; base-uri 'none'">
 <meta name="referrer" content="no-referrer">
-<meta name="robots" content="noindex, nofollow">
 <meta name="color-scheme" content="light dark">
-<title>Shire Purchase Calculator</title>
+<meta name="theme-color" content="#1E6A54">
+<title>Mortgage Buddy — Open Home &amp; Purchase Calculator</title>
+<link rel="manifest" href="./manifest.json">
+<link rel="icon" href="./icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="./icon.svg">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&family=Public+Sans:wght@400;500;600;700&display=swap">
-<style>
-html{padding-top:env(safe-area-inset-top,0px)}
-body{margin:0}
-/* Layout: phone-first single column (price, verdict, key figures, split, settings, ladder) with a sticky bottom bar for nudging the price; two columns above 880px. */
-:root{
-  --bg:#F3F6F4; --surface:#FFFFFF; --fg:#16211C; --muted:#5A6B63; --line:#D9E1DC;
-  --accent:#1E6A54; --accent-fg:#FFFFFF; --accent-soft:#E2EFEA;
-  --deposit:#1E6A54; --duty:#C07A2C; --costs:#8D9A94; --kept:#6FB894; --short:#A8261E;
-  --good:#2B7A4B; --good-bg:#E4F2E9; --warn:#8A5200; --warn-bg:#FBEFD9; --bad:#A8261E; --bad-bg:#FBE4E2;
-  --info:#1E5A6A; --info-bg:#E1EEF2; --shadow:rgba(22,33,28,.12);
-  --display:"Bricolage Grotesque","Segoe UI",system-ui,sans-serif;
-  --body:"Public Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
-}
-@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
-  --bg:#0E1412; --surface:#16201C; --fg:#E4ECE7; --muted:#97A8A0; --line:#2A3832;
-  --accent:#5CC29F; --accent-fg:#0E1412; --accent-soft:#16332A;
-  --deposit:#5CC29F; --duty:#E0A35A; --costs:#6F7D77; --kept:#2F7A5A; --short:#F2837B;
-  --good:#74CF97; --good-bg:#15301F; --warn:#E6B05C; --warn-bg:#33270F; --bad:#F2837B; --bad-bg:#3A1A18;
-  --info:#7CC6DA; --info-bg:#132B33; --shadow:rgba(0,0,0,.5); color-scheme:dark }}
-:root[data-theme="dark"]{
-  --bg:#0E1412; --surface:#16201C; --fg:#E4ECE7; --muted:#97A8A0; --line:#2A3832;
-  --accent:#5CC29F; --accent-fg:#0E1412; --accent-soft:#16332A;
-  --deposit:#5CC29F; --duty:#E0A35A; --costs:#6F7D77; --kept:#2F7A5A; --short:#F2837B;
-  --good:#74CF97; --good-bg:#15301F; --warn:#E6B05C; --warn-bg:#33270F; --bad:#F2837B; --bad-bg:#3A1A18;
-  --info:#7CC6DA; --info-bg:#132B33; --shadow:rgba(0,0,0,.5); color-scheme:dark }
-
-*{box-sizing:border-box}
-[hidden]{display:none!important}
-body{background:var(--bg);color:var(--fg);font-family:var(--body);font-size:15px;line-height:1.5;-webkit-text-size-adjust:100%;
-  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));
-  padding-block:16px calc(92px + env(safe-area-inset-bottom,0px));overflow-x:clip;max-width:100%}
-@media (min-width:880px){body{padding-block:24px 40px}}
-.wrap{max-width:1080px;margin:0 auto;display:grid;gap:16px;grid-template-columns:minmax(0,1fr);min-width:0}
-.wrap>*{min-width:0}
-.num{font-variant-numeric:tabular-nums}
-h1{font-family:var(--display);font-weight:700;font-size:1.35rem;line-height:1.15;margin:0;text-wrap:balance;letter-spacing:-.01em}
-h2{font-family:var(--display);font-weight:600;font-size:1.05rem;margin:0}
-.lede{color:var(--muted);margin:4px 0 0;max-width:62ch;font-size:.88rem}
-.eyebrow{font-size:.7rem;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
-@media (min-width:880px){h1{font-size:1.6rem}.lede{font-size:.95rem}}
-
-.panel{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:16px;min-width:0}
-
-/* mobile: one ordered column; desktop: two stacks */
-.cols{display:grid;gap:16px;grid-template-columns:minmax(0,1fr);min-width:0}
-.cols>*,.stack>*{min-width:0}
-.stack{display:contents}
-.o1{order:1}.o2{order:2}.o3{order:3}.o4{order:4}.o5{order:5}.o6{order:6}
-@media (min-width:880px){
-  .cols{grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);align-items:start;gap:20px}
-  .stack{display:grid;gap:16px;min-width:0}
-}
-
-/* price */
-.price-top{display:flex;align-items:center;justify-content:space-between;gap:8px}
-.price-line{display:flex;align-items:center;gap:8px;margin-top:6px}
-.price-input{flex:1;min-width:0;width:100%;font-family:var(--display);font-weight:700;font-size:clamp(1.5rem,8vw,2.1rem);line-height:1.1;border:none;border-bottom:2px solid var(--line);
-  background:transparent;color:var(--fg);padding:4px 0;font-variant-numeric:tabular-nums;border-radius:0}
-.price-input:focus{outline:none;border-bottom-color:var(--accent)}
-.step{flex:none;width:48px;height:48px;border-radius:12px;border:1px solid var(--line);background:var(--bg);color:var(--fg);
-  font:700 1.4rem/1 var(--body);cursor:pointer;display:grid;place-items:center;touch-action:manipulation}
-.step:active{background:var(--accent-soft)}
-.step-hint{font-size:.75rem;color:var(--muted)}
-input[type=range]{width:100%;accent-color:var(--accent);margin:16px 0 8px;height:28px}
-.chips{display:flex;gap:8px;overflow-x:auto;scrollbar-width:none;margin-inline:-16px;padding-inline:16px;padding-block:2px;-webkit-overflow-scrolling:touch}
-.chips::-webkit-scrollbar{display:none}
-.chip{flex:none;min-height:40px;border:1px solid var(--line);background:var(--bg);color:var(--fg);border-radius:999px;padding:8px 16px;
-  font:600 .9rem var(--body);cursor:pointer;touch-action:manipulation}
-.chip[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--accent-fg)}
-.chip:focus-visible,button:focus-visible,input:focus-visible,summary:focus-visible,tr:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
-
-/* approach */
-.approach{margin-top:16px;padding-top:14px;border-top:1px solid var(--line);display:grid;gap:10px}
-.seg{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:3px;gap:3px}
-.seg button{min-height:42px;border:none;border-radius:8px;background:transparent;color:var(--fg);font:600 .82rem/1.2 var(--body);cursor:pointer;padding:6px 4px;touch-action:manipulation}
-.seg button[aria-checked="true"]{background:var(--accent);color:var(--accent-fg)}
-.seg-help{margin:0;font-size:.8rem;color:var(--muted);line-height:1.4}
-.amt{display:flex;align-items:center;gap:8px}
-.amt input{flex:1;min-width:0}
-.amt .step{width:44px;height:44px;font-size:1.2rem}
-.cash-grid{display:grid;gap:12px}
-@media (min-width:560px){.cash-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
-
-/* verdict */
-.verdict{border-radius:12px;padding:12px 14px;display:grid;gap:2px}
-.verdict strong{font-size:1rem}
-.verdict p{margin:0;font-size:.9rem}
-.v-good{background:var(--good-bg);color:var(--good)}
-.v-warn{background:var(--warn-bg);color:var(--warn)}
-.v-bad{background:var(--bad-bg);color:var(--bad)}
-.v-info{background:var(--info-bg);color:var(--info)}
-.notes{display:grid;gap:6px;margin:0;padding:0;list-style:none}
-.notes:empty{display:none}
-.notes li{font-size:.85rem;color:var(--muted);padding-left:14px;position:relative}
-.notes li::before{content:"";position:absolute;left:0;top:.62em;width:6px;height:6px;border-radius:50%;background:var(--muted)}
-
-/* split bar */
-.bar{display:flex;height:20px;border-radius:6px;overflow:hidden;background:var(--line)}
-.bar span{display:block;height:100%;min-width:0}
-.legend{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px 14px;margin-top:12px}
-.legend div{display:grid;grid-template-columns:10px minmax(0,1fr);column-gap:8px;align-items:baseline}
-.legend i{width:10px;height:10px;border-radius:2px;display:block;transform:translateY(1px)}
-.legend b{font-size:1rem;grid-column:2;font-variant-numeric:tabular-nums}
-.legend small{color:var(--muted);grid-column:2;font-size:.75rem;line-height:1.3}
-.legend .lbl{font-size:.8rem;color:var(--muted)}
-
-/* figures */
-.figs{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:1px;background:var(--line);border:1px solid var(--line);border-radius:12px;overflow:hidden}
-.fig{background:var(--surface);padding:12px 14px;display:grid;gap:2px;min-width:0;align-content:start}
-.fig .v{font-family:var(--display);font-weight:700;font-size:clamp(1.05rem,5.2vw,1.3rem);line-height:1.2;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
-.fig small{color:var(--muted);font-size:.75rem;line-height:1.35}
-.fig.wide{grid-column:1/-1}
-@media (min-width:880px){.fig{padding:14px 16px}.fig .v{font-size:1.45rem}}
-.meter{height:8px;border-radius:4px;background:var(--line);overflow:hidden;margin-top:6px}
-.meter span{display:block;height:100%;background:var(--accent);border-radius:4px}
-.neg{color:var(--bad)}
-
-/* settings */
-details.panel>summary{cursor:pointer;list-style:none;display:flex;justify-content:space-between;align-items:center;gap:8px;min-height:32px}
-details.panel>summary::-webkit-details-marker{display:none}
-details.panel>summary::after{content:"Edit";font-size:.85rem;color:var(--accent);font-weight:600}
-details.panel[open]>summary::after{content:"Done"}
-.sum-line{font-size:.8rem;color:var(--muted);margin:4px 0 0}
-details[open] .sum-line{display:none}
-.grid-in{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px 12px;margin-top:14px}
-@media (min-width:560px){.grid-in{grid-template-columns:repeat(auto-fit,minmax(160px,1fr))}}
-.field{display:grid;gap:4px;min-width:0;align-content:start}
-.field label{font-size:.78rem;font-weight:600;color:var(--muted);line-height:1.25}
-.field input[type=text]{width:100%;font:500 16px var(--body);font-variant-numeric:tabular-nums;color:var(--fg);background:var(--bg);
-  border:1px solid var(--line);border-radius:8px;padding:10px;min-height:44px}
-.field input[type=text]:focus{outline:none;border-color:var(--accent)}
-.field small{font-size:.72rem;color:var(--muted);line-height:1.3}
-.check{display:flex;gap:10px;align-items:center;font-size:.9rem;margin-top:16px;min-height:44px}
-.check input{accent-color:var(--accent);width:22px;height:22px;flex:none}
-.btn{border:1px solid var(--line);background:var(--bg);color:var(--fg);border-radius:8px;padding:10px 16px;min-height:44px;font:600 .88rem var(--body);cursor:pointer;margin-top:8px}
-
-/* ladder */
-.ladder{margin-top:12px;border:1px solid var(--line);border-radius:10px;overflow-x:auto;max-width:100%}
-table{border-collapse:collapse;width:100%;font-variant-numeric:tabular-nums;font-size:.8rem}
-th,td{padding:11px 5px;text-align:right;white-space:nowrap;border-bottom:1px solid var(--line)}
-th{font-size:.62rem;letter-spacing:.04em;text-transform:uppercase;color:var(--muted);font-weight:600;background:var(--bg);padding-block:8px}
-th:first-child,td:first-child{text-align:left;padding-left:10px}
-th:last-child,td:last-child{padding-right:10px}
-@media (min-width:420px){table{font-size:.86rem}th,td{padding-inline:8px}}
-tbody tr{cursor:pointer}
-tbody tr:active,tbody tr:hover{background:var(--accent-soft)}
-tbody tr.cur{background:var(--accent-soft);font-weight:700}
-tbody tr:last-child td{border-bottom:none}
-.wide-only{display:none}
-@media (min-width:720px){.wide-only{display:table-cell}table{font-size:.88rem}th,td{padding-inline:10px}}
-.foot{color:var(--muted);font-size:.8rem;max-width:72ch;margin:0}
-
-/* sticky bottom bar (phones/tablets) */
-.dock{position:fixed;left:0;right:0;bottom:0;z-index:20;background:var(--surface);border-top:1px solid var(--line);box-shadow:0 -6px 20px var(--shadow);
-  padding:10px max(16px,env(safe-area-inset-right,0px)) calc(10px + env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px));
-  display:flex;align-items:center;gap:8px}
-.dock .step{width:42px;height:42px;border-radius:10px;font-size:1.3rem}
-.dock-price{flex:none;font-family:var(--display);font-weight:700;font-size:1rem;font-variant-numeric:tabular-nums;min-width:52px;text-align:center}
-.dock-out{flex:1;margin-left:4px;text-align:right;min-width:0;line-height:1.25}
-.dock-out b{font-family:var(--display);font-size:1.05rem;font-variant-numeric:tabular-nums;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.dock-out small{font-size:.72rem;color:var(--muted);font-variant-numeric:tabular-nums;white-space:nowrap;display:block;overflow:hidden;text-overflow:ellipsis}
-.dock-dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:5px;transform:translateY(-1px)}
-@media (min-width:880px){.dock{display:none}}
-@media (prefers-reduced-motion:no-preference){.bar span,.meter span{transition:width .25s ease}}
-</style>
+<link rel="stylesheet" href="./styles.css">
 </head>
 <body>
 
 <div class="wrap">
+  <!-- White-label Broker Banner (shown when broker details are configured or via Client Link) -->
+  <aside id="brokerBanner" class="broker-banner" hidden aria-label="Mortgage broker details">
+    <div class="broker-meta">
+      <span class="broker-badge" id="bBadge"></span>
+      <span class="broker-title" id="bTitle"></span>
+      <span class="broker-sub" id="bSub"></span>
+    </div>
+    <div class="broker-ctas" id="bCtas"></div>
+  </aside>
+
   <header>
-    <div class="eyebrow">NSW · first home buyers</div>
-    <h1>Shire Purchase Calculator</h1>
-    <p class="lede">Example numbers are loaded. Enter your own under Your cash and Your numbers; they stay on this device only. Then enter a listing price to see your deposit, stamp duty, the cash you can keep under the 5% deposit hold-back rule, and your repayments.</p>
+    <div class="top-bar">
+      <div>
+        <div class="eyebrow" id="eyebrowState">NSW · First Home (5% Scheme)</div>
+        <h1>Mortgage Buddy</h1>
+        <p class="lede" id="ledeText">Enter a listing price at an open home or auction to see your deposit, stamp duty, the cash you can keep, and your repayments. Numbers stay on your device or in links you share.</p>
+      </div>
+      <div class="top-actions">
+        <button type="button" class="btn-sm" id="btnSharePartner" title="Copy a link with your current numbers and property shortlist">Share / Partner Sync</button>
+      </div>
+    </div>
+
+    <div class="state-bar" aria-label="Buyer profile, state and region settings">
+      <div class="state-select-group">
+        <label for="buyerTypeSelect" class="eyebrow">Buyer</label>
+        <select id="buyerTypeSelect" class="select-pill" aria-label="Buyer profile">
+          <option value="fhb_scheme">First Home (5% Scheme)</option>
+          <option value="fhb_standard">First Home (Standard)</option>
+          <option value="standard">Next Home / Standard Buyer</option>
+        </select>
+        <label for="stateSelect" class="eyebrow">State</label>
+        <select id="stateSelect" class="select-pill">
+          <option value="NSW">NSW</option>
+          <option value="VIC">VIC</option>
+          <option value="QLD">QLD</option>
+          <option value="WA">WA</option>
+          <option value="SA">SA</option>
+          <option value="TAS">TAS</option>
+          <option value="ACT">ACT</option>
+          <option value="NT">NT</option>
+        </select>
+        <select id="regionSelect" class="select-pill" aria-label="Region"></select>
+      </div>
+      <span class="cap-pill num" id="capPill">5% scheme cap: $1.5M</span>
+    </div>
   </header>
 
   <div class="cols">
     <div class="stack">
       <section class="panel o1" aria-labelledby="price-l">
-        <div class="price-top"><label id="price-l" for="price" class="eyebrow">Purchase price</label><span class="step-hint">± $10k</span></div>
+        <div class="price-top"><label id="price-l" for="price" class="eyebrow">Purchase price</label><span class="step-hint" id="maxPriceTopHint">± $10k</span></div>
         <div class="price-line">
           <button type="button" class="step" data-step="-10000" aria-label="Lower price by $10,000">−</button>
           <input id="price" class="price-input" type="text" inputmode="numeric" autocomplete="off" enterkeyhint="done">
@@ -201,22 +81,37 @@ tbody tr:last-child td{border-bottom:none}
           <span class="eyebrow" id="approach-l">Approach</span>
           <div class="seg" role="radiogroup" aria-labelledby="approach-l">
             <button type="button" role="radio" data-strat="max">Keep most cash</button>
-            <button type="button" role="radio" data-strat="set">Keep a set amount</button>
+            <button type="button" role="radio" data-strat="set">Keep set cash</button>
+            <button type="button" role="radio" data-strat="loan">Target loan</button>
           </div>
           <p class="seg-help" id="stratHelp"></p>
-          <div class="field" id="keepField"><label for="keepTarget">Amount to keep</label>
+          <div class="field" id="keepField" hidden><label for="keepTarget">Cash buffer to keep</label>
             <div class="amt"><button type="button" class="step" data-amt="keepTarget" data-by="-5000" aria-label="Keep $5,000 less">−</button><input id="keepTarget" type="text" inputmode="numeric" enterkeyhint="done"><button type="button" class="step" data-amt="keepTarget" data-by="5000" aria-label="Keep $5,000 more">+</button></div>
             <small>Renovations, furniture and emergency money</small></div>
+          <div class="field" id="loanField" hidden><label for="loanTarget">Target loan amount</label>
+            <div class="amt"><button type="button" class="step" data-amt="loanTarget" data-by="-10000" aria-label="Borrow $10,000 less">−</button><input id="loanTarget" type="text" inputmode="numeric" enterkeyhint="done"><button type="button" class="step" data-amt="loanTarget" data-by="10000" aria-label="Borrow $10,000 more">+</button></div>
+            <small>Test how a specific loan size changes your repayments, deposit &amp; leftover cash</small>
+            <div class="loan-max-hint" id="loanMaxHint"></div>
+          </div>
         </div>
         <div class="approach">
-          <span class="eyebrow">Your cash</span>
+          <span class="eyebrow">Your cash &amp; property strata</span>
           <div class="cash-grid">
-            <div class="field"><label for="savings">House savings</label>
-              <div class="amt"><button type="button" class="step" data-amt="savings" data-by="-1000" aria-label="$1,000 less house savings">−</button><input id="savings" type="text" inputmode="numeric" enterkeyhint="done"><button type="button" class="step" data-amt="savings" data-by="1000" aria-label="$1,000 more house savings">+</button></div>
-              <small>For the deposit, stamp duty and costs</small></div>
-            <div class="field"><label for="otherCash">Other cash</label>
+            <div class="field"><label for="savings">Available funds / savings</label>
+              <div class="amt"><button type="button" class="step" data-amt="savings" data-by="-1000" aria-label="$1,000 less savings">−</button><input id="savings" type="text" inputmode="numeric" enterkeyhint="done"><button type="button" class="step" data-amt="savings" data-by="1000" aria-label="$1,000 more savings">+</button></div>
+              <small id="savingsHint">Savings or sale proceeds for deposit, stamp duty and costs</small></div>
+            <div class="field" id="otherCashField"><label for="otherCash">Other cash</label>
               <div class="amt"><button type="button" class="step" data-amt="otherCash" data-by="-1000" aria-label="$1,000 less other cash">−</button><input id="otherCash" type="text" inputmode="numeric" enterkeyhint="done"><button type="button" class="step" data-amt="otherCash" data-by="1000" aria-label="$1,000 more other cash">+</button></div>
               <small>FHSS tax money, other accounts. Counted by the hold-back rule, not used for the house</small></div>
+          </div>
+          <div class="field">
+            <label for="strataQtr">Strata / body corporate (per quarter)</label>
+            <div class="amt">
+              <button type="button" class="step" data-amt="strataQtr" data-by="-250" aria-label="$250 less quarterly strata">−</button>
+              <input id="strataQtr" type="text" inputmode="numeric" enterkeyhint="done">
+              <button type="button" class="step" data-amt="strataQtr" data-by="250" aria-label="$250 more quarterly strata">+</button>
+            </div>
+            <small>Set to $0 for freestanding houses, or enter quarterly strata for apartments/townhouses</small>
           </div>
         </div>
       </section>
@@ -225,7 +120,7 @@ tbody tr:last-child td{border-bottom:none}
       <ul class="notes o4" id="notes"></ul>
 
       <section class="panel o5">
-        <h2>Where your savings go</h2>
+        <h2>Where your funds go</h2>
         <p class="foot" id="savingsLine" style="margin:2px 0 12px"></p>
         <div class="bar" id="bar" aria-hidden="true"></div>
         <div class="legend" id="legend"></div>
@@ -245,26 +140,86 @@ tbody tr:last-child td{border-bottom:none}
       <details class="panel o6" id="settings">
         <summary><div><h2>Your numbers</h2><p class="sum-line num" id="sumLine"></p></div></summary>
         <div class="grid-in">
-          <div class="field"><label for="months">Months until you buy</label><input id="months" type="text" inputmode="numeric" enterkeyhint="next"><small>Adds your pay to savings</small></div>
+          <div class="field"><label for="months">Months until you buy</label><input id="months" type="text" inputmode="numeric" enterkeyhint="next"><small>Adds your regular saving to available funds</small></div>
           <div class="field"><label for="rate">Interest rate (%)</label><input id="rate" type="text" inputmode="decimal" enterkeyhint="next"><small>Your quoted rate</small></div>
           <div class="field"><label for="years">Loan length (years)</label><input id="years" type="text" inputmode="numeric" enterkeyhint="next"></div>
-          <div class="field"><label for="expenses">Monthly expenses</label><input id="expenses" type="text" inputmode="numeric" enterkeyhint="next"><small>For the hold-back limit</small></div>
-          <div class="field"><label for="holdMonths">Hold-back limit (months)</label><input id="holdMonths" type="text" inputmode="numeric" enterkeyhint="next"><small>Expenses + repayments</small></div>
+          <div class="field" id="expensesField"><label for="expenses">Monthly living expenses</label><input id="expenses" type="text" inputmode="numeric" enterkeyhint="next"><small>For the 5% scheme hold-back limit</small></div>
+          <div class="field" id="holdMonthsField"><label for="holdMonths">Hold-back limit (months)</label><input id="holdMonths" type="text" inputmode="numeric" enterkeyhint="next"><small>Expenses + repayments</small></div>
           <div class="field"><label for="costs">Legal, inspections, other</label><input id="costs" type="text" inputmode="numeric" enterkeyhint="next"></div>
-          <div class="field"><label for="maxLoan">Maximum loan</label><input id="maxLoan" type="text" inputmode="numeric" enterkeyhint="next"><small>From your broker</small></div>
-          <div class="field"><label for="pay">Your pay toward the home</label><input id="pay" type="text" inputmode="numeric" enterkeyhint="next"><small>Per month</small></div>
-          <div class="field"><label for="rent">Board freed up</label><input id="rent" type="text" inputmode="numeric" enterkeyhint="next"><small>Per month once you move</small></div>
-          <div class="field"><label for="running">Home running costs</label><input id="running" type="text" inputmode="numeric" enterkeyhint="done"><small>Council, water, insurance, upkeep</small></div>
+          <div class="field"><label for="maxLoan">Maximum loan</label><input id="maxLoan" type="text" inputmode="numeric" enterkeyhint="next"><small>Pre-approval cap from your broker</small></div>
+          <div class="field">
+            <div class="label-row">
+              <label for="pay">Housing budget / saving</label>
+              <span class="freq-toggle" role="group" aria-label="Housing budget frequency">
+                <button type="button" data-freq-field="pay" data-freq-val="mo" aria-pressed="true">/mo</button>
+                <button type="button" data-freq-field="pay" data-freq-val="fn" aria-pressed="false">/fn</button>
+              </span>
+            </div>
+            <input id="pay" type="text" inputmode="numeric" enterkeyhint="next">
+            <small id="payFreqHint">Per month toward home</small>
+          </div>
+          <div class="field">
+            <div class="label-row">
+              <label for="rent">Rent / board freed up</label>
+              <span class="freq-toggle" role="group" aria-label="Rent or board frequency">
+                <button type="button" data-freq-field="rent" data-freq-val="mo" aria-pressed="true">/mo</button>
+                <button type="button" data-freq-field="rent" data-freq-val="fn" aria-pressed="false">/fn</button>
+              </span>
+            </div>
+            <input id="rent" type="text" inputmode="numeric" enterkeyhint="next">
+            <small id="rentFreqHint">Per month once you move in</small>
+          </div>
+          <div class="field"><label for="running">Base home running costs</label><input id="running" type="text" inputmode="numeric" enterkeyhint="done"><small>Council, water, insurance, upkeep (excl. strata)</small></div>
         </div>
-        <label class="check"><input id="fhb" type="checkbox"> First home buyers (stamp duty discount under $1M)</label>
-        <button class="btn" id="reset" type="button">Reset to defaults</button>
+        <label class="check" id="lmiCheckWrap" hidden><input id="allowLmi" type="checkbox"> Allow &lt;20% deposit with Lenders Mortgage Insurance (up to 90% LVR)</label>
+        <button class="btn" id="reset" type="button" style="margin-top:12px">Reset to defaults</button>
       </details>
     </div>
   </div>
 
+  <!-- Property Shortlist & Comparison -->
+  <section class="panel" aria-labelledby="shortlist-h">
+    <div class="shortlist-head">
+      <div>
+        <h2 id="shortlist-h">Property shortlist</h2>
+        <p class="foot" style="margin-top:2px">Save open homes at their target price and strata to compare side-by-side or send to your partner/broker.</p>
+      </div>
+    </div>
+    <form id="addShortlistForm" class="shortlist-form">
+      <div class="field">
+        <label for="slName">Address or nickname</label>
+        <input id="slName" type="text" placeholder="e.g. 14 Oak St, Townhouse 3" autocomplete="off">
+      </div>
+      <div class="field">
+        <small>Saves current price &amp; strata above</small>
+        <button type="submit" class="btn btn-primary" style="width:100%">+ Save current property</button>
+      </div>
+    </form>
+    <p id="shortlistEmpty" class="shortlist-empty">No properties saved yet. Enter a price (and quarterly strata if applicable) above, then tap <strong>+ Save current property</strong>.</p>
+    <div id="shortlistTableWrap" class="ladder" hidden>
+      <table>
+        <thead>
+          <tr>
+            <th>Property</th>
+            <th>Price</th>
+            <th class="wide-only">Strata</th>
+            <th class="wide-only">Deposit</th>
+            <th class="wide-only">Stamp duty</th>
+            <th>Monthly</th>
+            <th>Keep</th>
+            <th>Left/mo</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody id="shortlistBody"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- Price Ladder -->
   <section class="panel">
     <h2>Price ladder</h2>
-    <p class="foot" style="margin-top:2px">Same settings and approach at other prices. Tap a row to load it.</p>
+    <p class="foot" style="margin-top:2px">Same settings and approach across your target range. Tap any row to load it.</p>
     <div class="ladder">
       <table>
         <thead><tr><th>Price</th><th class="wide-only">Borrowed</th><th class="wide-only">Deposit</th><th class="wide-only">Stamp duty</th><th>Monthly</th><th>Fortn.</th><th>Keep</th><th>Left/mo</th></tr></thead>
@@ -273,8 +228,34 @@ tbody tr:last-child td{border-bottom:none}
     </div>
   </section>
 
-  <p class="foot">How this works: with the 5% deposit scheme, all your cash (house savings plus other accounts) can't be more than the hold-back limit (months × expenses plus repayment). Savings above that go into the deposit, which lowers the loan. At a 20% deposit or more you don't need the scheme, so the limit doesn't apply. Stamp duty uses 2026 NSW rates, with the first home buyer discount phasing out between $800k and $1M. Fortnightly means half the monthly amount every fortnight. Check your bank sets it this way. Estimates only, not financial advice. Confirm stamp duty with Revenue NSW and the loan with your broker.</p>
+  <!-- Broker White-Label Setup -->
+  <details class="panel broker-setup" id="brokerPanel">
+    <summary>
+      <div>
+        <h2>Broker mode &amp; white-label client link</h2>
+        <p class="sum-line">Configure client buyer profile, pre-approval numbers &amp; your brokerage branding to generate a shareable client companion link</p>
+      </div>
+    </summary>
+    <div class="grid-in">
+      <div class="field"><label for="br_clientName">Client name(s)</label><input id="br_clientName" type="text" placeholder="e.g. Sarah &amp; Tom"></div>
+      <div class="field"><label for="br_brokerName">Your name (Broker)</label><input id="br_brokerName" type="text" placeholder="e.g. Alex Mercer"></div>
+      <div class="field"><label for="br_company">Brokerage / firm</label><input id="br_company" type="text" placeholder="e.g. Harbour Mortgage Advisory"></div>
+      <div class="field"><label for="br_acl">ACL / Credit Rep #</label><input id="br_acl" type="text" placeholder="e.g. Credit Rep 512345"></div>
+      <div class="field"><label for="br_phone">Broker phone</label><input id="br_phone" type="tel" placeholder="e.g. 0400 123 456"></div>
+      <div class="field"><label for="br_email">Broker email</label><input id="br_email" type="email" placeholder="e.g. alex@harbour.com.au"></div>
+      <div class="field"><label for="br_bookingUrl">Booking link (optional)</label><input id="br_bookingUrl" type="url" placeholder="https://cal.com/your-link"></div>
+      <div class="field"><label for="br_accent">Brand colour (hex)</label><input id="br_accent" type="text" placeholder="#1E6A54"></div>
+    </div>
+    <div class="share-bar">
+      <button type="button" class="btn btn-primary" id="btnCopyClientLink">Copy Branded Client Link</button>
+      <small class="foot">Generates a ready-to-use Client View link with your branding banner, contact buttons, buyer profile (FHB or Next Home), and the pre-approval numbers entered above.</small>
+    </div>
+  </details>
+
+  <p class="foot" id="footNote"></p>
 </div>
+
+<div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
 
 <div class="dock" aria-label="Quick price controls">
   <button type="button" class="step" data-step="-10000" aria-label="Lower price by $10,000">−</button>
@@ -283,214 +264,6 @@ tbody tr:last-child td{border-bottom:none}
   <div class="dock-out"><b id="dMon"></b><small id="dSub"></small></div>
 </div>
 
-<script>
-(function(){
-  const $ = id => document.getElementById(id);
-  const DEFAULTS = {price:1000000,savings:120000,months:0,rate:6.5,years:30,expenses:5000,holdMonths:6,costs:5000,maxLoan:1200000,pay:6000,rent:1500,running:1000,fhb:true,strategy:'max',keepTarget:30000,otherCash:0};
-  const MONEY = ['price','savings','otherCash','expenses','costs','maxLoan','pay','rent','running','keepTarget'];
-  const HELP = {
-    max: 'Put down the 5% minimum and keep as much cash as the hold-back rule allows.',
-    set: 'Keep this amount and put everything else into the deposit. Set it low to put down as much as possible.'
-  };
-  const PLAIN = ['months','rate','years','holdMonths'];
-  const KEY = 'shire-calc';
-  let s = Object.assign({}, DEFAULTS);
-  try {
-    const saved = JSON.parse(localStorage.getItem(KEY) || 'null');
-    if (saved && typeof saved === 'object') {
-      MONEY.concat(PLAIN).forEach(k => { const n = Number(saved[k]); if (isFinite(n)) s[k] = n; });
-      if (typeof saved.fhb === 'boolean') s.fhb = saved.fhb;
-      if (saved.strategy === 'set' || saved.strategy === 'max') s.strategy = saved.strategy;
-    }
-  } catch(e) {}
-
-  const money = n => (n < 0 ? '−' : '') + '$' + Math.round(Math.abs(n)).toLocaleString('en-AU');
-  const short = n => {
-    const a = Math.abs(n), sign = n < 0 ? '−' : '';
-    if (a >= 1e6) return sign + '$' + (Math.round(a / 1e4) / 100).toString().replace(/\.?0+$/, '') + 'M';
-    return sign + '$' + Math.round(a / 1000) + 'k';
-  };
-  const parse = v => { const n = parseFloat(String(v).replace(/[^0-9.\-]/g,'')); return isFinite(n) ? n : 0; };
-
-  const BRACKETS = [[0,0,1.25],[17000,212,1.5],[37000,512,1.75],[99000,1597,3.5],[372000,11152,4.5],[1240000,50212,5.5],[3721000,186667,7]];
-  function fullDuty(v){ let b = BRACKETS[0]; for (const x of BRACKETS) if (v > x[0]) b = x; return b[1] + Math.ceil((v - b[0]) / 100) * b[2]; }
-  function duty(v, fhb){ const f = fullDuty(v); if (!fhb || v >= 1000000) return f; if (v <= 800000) return 0; return f * (v - 800000) / 200000; }
-  function pmt(L, rate, years){ const r = rate/100/12, n = Math.max(1, years)*12; if (r === 0) return L/n; return L * r / (1 - Math.pow(1 + r, -n)); }
-
-  function calc(P){
-    const S = s.savings + s.months * s.pay, O = Math.max(0, s.otherCash || 0);
-    const D = duty(P, s.fhb), C = s.costs, E = s.expenses, M = s.holdMonths;
-    const f = pmt(1, s.rate, s.years);
-    const L5 = 0.95 * P, L20 = 0.80 * P;
-    const denom = 1 - M * f;
-    const Lrule = denom > 0 ? (M * E + P + D + C - S - O) / denom : Infinity;
-    let L, mode, capped = false, limited = null, target = null;
-    if (s.strategy === 'set') {
-      target = s.keepTarget;
-      const top = P > 1500000 ? L20 : L5;
-      L = P - (S - D - C - target);
-      if (L > top) { L = top; limited = 'min'; }
-      if (L > s.maxLoan) { L = s.maxLoan; capped = true; limited = 'maxloan'; }
-      if (P <= 1500000 && L > L20 + 1 && L > Lrule) { L = Math.max(Lrule, L20); limited = 'rule'; }
-      mode = P > 1500000 ? 'priceCap' : (L > L20 + 1 ? 'scheme' : 'twenty');
-    } else {
-      if (P > 1500000) { L = L20; mode = 'priceCap'; }
-      else if (Lrule >= L5) { L = L5; mode = 'min5'; }
-      else if (Lrule > L20) { L = Lrule; mode = 'rule'; }
-      else { L = L20; mode = 'twenty'; }
-      if (L > s.maxLoan) { L = s.maxLoan; capped = true; }
-    }
-    L = Math.max(0, L);
-    const deposit = P - L, kept = S - deposit - D - C;
-    const monthly = pmt(L, s.rate, s.years), fortnightly = monthly / 2;
-    const scheme = P <= 1500000 && L > L20 + 1;
-    const limit = scheme ? M * (E + monthly) : null;
-    const houseLimit = scheme ? limit - O : null;
-    const left = s.pay + s.rent - monthly - s.running;
-    const rf = s.rate/100/26; let fnYears = null, saved = null;
-    if (L > 0 && fortnightly > rf * L) {
-      const n = -Math.log(1 - rf * L / fortnightly) / Math.log(1 + rf);
-      fnYears = n / 26; saved = monthly * s.years * 12 - fortnightly * n;
-    }
-    return {P,S,D,C,L,deposit,kept,monthly,fortnightly,limit,left,mode,capped,scheme,fnYears,saved,limited,target,O,houseLimit,extraDep: deposit - 0.05*P};
-  }
-
-  function renderInputs(){
-    MONEY.forEach(k => { const el = $(k); if (document.activeElement !== el) el.value = Math.round(s[k]).toLocaleString('en-AU'); });
-    PLAIN.forEach(k => { const el = $(k); if (document.activeElement !== el) el.value = s[k]; });
-    $('fhb').checked = !!s.fhb;
-    $('priceRange').value = Math.min(1500000, Math.max(700000, s.price));
-    document.querySelectorAll('[data-strat]').forEach(b => b.setAttribute('aria-checked', String(b.dataset.strat === s.strategy)));
-    $('stratHelp').textContent = HELP[s.strategy] || HELP.max;
-    $('keepField').hidden = s.strategy !== 'set';
-  }
-
-  const CHIPS = [900000,950000,1000000,1050000,1100000,1150000,1200000,1250000];
-  function renderChips(){
-    $('chips').innerHTML = CHIPS.map(p => `<button type="button" class="chip" data-p="${p}" aria-pressed="${p===Math.round(s.price)}">${short(p)}</button>`).join('');
-  }
-
-  function render(){
-    const r = calc(s.price);
-    renderChips();
-    const shortfall = -r.kept;
-    let cls, title, body;
-    const notes = [];
-    if (r.kept < 0) {
-      cls = 'v-bad'; title = `${money(shortfall)} short`;
-      const m = s.pay > 0 ? Math.ceil(shortfall / s.pay) : null;
-      body = m ? `At ${money(s.pay)} a month, that's about ${m} more month${m>1?'s':''} of saving.` : 'Lower the price or add savings.';
-    } else if (r.left < 0) {
-      cls = 'v-warn'; title = 'Repayments are over budget';
-      body = `${money(-r.left)} a month more than your pay, freed-up board and running costs cover.`;
-    } else if (s.strategy === 'max' && r.mode === 'rule') {
-      cls = 'v-info'; title = 'Works, with a bigger deposit';
-      body = `The hold-back rule caps your total cash at ${money(r.limit)}${r.O > 0 ? `, including ${money(r.O)} other cash` : ''}, so ${money(r.extraDep)} extra goes into the deposit.`;
-    } else if (r.limited === 'rule') {
-      cls = 'v-info'; title = `You can keep up to ${money(r.kept)}`;
-      body = `The hold-back rule caps your total cash at ${money(r.limit)} on this loan${r.O > 0 ? `, including ${money(r.O)} other cash` : ''}, so the rest goes into the deposit.`;
-    } else if (r.limited === 'min' || r.limited === 'maxloan') {
-      const minDep = r.P > 1500000 ? 0.2 * r.P : 0.05 * r.P;
-      cls = 'v-info'; title = `You can keep ${money(r.kept)}, not ${money(r.target)}`;
-      body = r.limited === 'min'
-        ? `The deposit can't go below ${r.P > 1500000 ? '20%' : '5%'} (${money(minDep)}), so this is the most cash left at this price.`
-        : `Your broker's ${money(s.maxLoan)} loan limit means a bigger deposit at this price.`;
-    } else if (s.strategy === 'set') {
-      cls = 'v-good'; title = `You keep ${money(r.kept)}`;
-      body = `${money(r.deposit)} (${(r.deposit/r.P*100).toFixed(1)}%) goes into the deposit.`;
-    } else {
-      cls = 'v-good'; title = 'This price works';
-      body = !r.scheme ? `You keep ${money(r.kept)}.`
-        : r.O > 0 ? `You keep ${money(r.kept)}. With ${money(r.O)} other cash, that's ${money(r.kept + r.O)} of your ${money(r.limit)} hold-back limit.`
-        : `You keep ${money(r.kept)}, under your ${money(r.limit)} hold-back limit.`;
-    }
-    if (r.scheme && r.O > 0) notes.push(`The hold-back rule counts your ${money(r.O)} of other cash too, so you can keep up to ${money(Math.max(0, r.houseLimit))} from house savings.`);
-    if (r.mode === 'twenty') notes.push('With a 20% deposit you don\'t need the 5% deposit scheme, so there\'s no hold-back limit and no LMI.');
-    if (r.mode === 'priceCap') notes.push('The 5% deposit scheme only covers homes up to $1.5M in Sydney, so this assumes a 20% deposit.');
-    if (r.capped) notes.push(`The loan is capped at your broker's maximum of ${money(s.maxLoan)}, so the deposit is larger.`);
-    if (s.fhb && s.price > 800000 && s.price < 1000000) notes.push(`The first home buyer discount saves about ${money(fullDuty(s.price) - r.D)} in stamp duty here.`);
-    if (s.fhb && s.price <= 800000) notes.push('No stamp duty at this price as first home buyers.');
-    if (r.kept >= 0 && r.scheme && s.strategy === 'max') notes.push(`Keep about $20–30k of the ${money(r.kept)} as an emergency fund. The rest can sit in the offset until you renovate.`);
-    if (s.strategy === 'set' && r.kept >= 0 && r.extraDep > 1) notes.push('Keeping the extra deposit money in an offset account instead saves nearly the same interest, and you can still use it later.');
-    if (s.strategy === 'set' && r.kept >= 0 && r.kept < 15000) notes.push('That leaves very little for emergencies or repairs after you move in.');
-    const v = $('verdict');
-    v.className = 'verdict o2 ' + cls;
-    v.innerHTML = `<strong>${title}</strong><p>${body}</p>`;
-    $('notes').innerHTML = notes.map(n => `<li>${n}</li>`).join('');
-
-    $('savingsLine').textContent = `${money(r.S)} house savings${s.months > 0 ? ` after ${s.months} more month${s.months>1?'s':''} of saving` : ''}${r.O > 0 ? `, plus ${money(r.O)} other cash that isn't used here` : ''}.`;
-    const parts = [
-      ['Deposit', r.deposit, 'var(--deposit)', `${(r.deposit/r.P*100).toFixed(1)}% of price`],
-      ['Stamp duty', r.D, 'var(--duty)', s.fhb && s.price < 1000000 ? 'With first home discount' : 'Full rate'],
-      ['Legal and other', r.C, 'var(--costs)', 'Conveyancer, inspections'],
-      r.kept >= 0 ? ['Cash kept', r.kept, 'var(--kept)', (r.target != null ? `Aim ${money(r.target)} · ` : '') + (r.scheme ? `up to ${money(Math.max(0, r.houseLimit))}` : 'no hold-back limit')] : ['Shortfall', shortfall, 'var(--short)', 'Not covered by savings']
-    ];
-    const total = parts.reduce((a,p) => a + Math.max(0,p[1]), 0) || 1;
-    $('bar').innerHTML = parts.map(p => `<span style="width:${Math.max(0,p[1])/total*100}%;background:${p[2]}"></span>`).join('');
-    $('legend').innerHTML = parts.map(p => `<div><i style="background:${p[2]}"></i><span class="lbl">${p[0]}</span><b>${money(p[1])}</b><small>${p[3]}</small></div>`).join('');
-
-    $('fMon').textContent = money(r.monthly);
-    $('fRate').textContent = `${s.rate}% over ${s.years} yrs`;
-    $('fFn').textContent = money(r.fortnightly);
-    $('fFnNote').textContent = r.fnYears ? `Done in ~${r.fnYears.toFixed(1)} yrs, ${short(r.saved)} less interest` : 'Half the monthly amount';
-    $('fLoan').textContent = money(r.L);
-    $('fLvr').textContent = `${(r.L/r.P*100).toFixed(1)}% of price`;
-    $('fDep').textContent = money(r.deposit);
-    $('fDepPct').textContent = r.extraDep > 1 ? `${(r.deposit/r.P*100).toFixed(1)}% of price` : '5% minimum';
-    const kEl = $('fKept'); kEl.textContent = money(r.kept); kEl.classList.toggle('neg', r.kept < 0);
-    if (r.scheme) {
-      $('fLimit').textContent = (r.O > 0 ? `Total cash ${money(r.kept + r.O)} (incl. ${money(r.O)} other). ` : '') + `Limit ${money(r.limit)}: ${s.holdMonths} × (${money(s.expenses)} expenses + ${money(r.monthly)} repayment)`;
-      $('meterWrap').hidden = false;
-      $('meter').style.width = Math.max(0, Math.min(100, (r.kept + r.O) / r.limit * 100)) + '%';
-    } else {
-      $('fLimit').textContent = r.kept < 0 ? 'Not enough savings for this price' : 'Hold-back limit doesn\'t apply at this deposit';
-      $('meterWrap').hidden = true;
-    }
-    const lEl = $('fLeft'); lEl.textContent = money(r.left); lEl.classList.toggle('neg', r.left < 0);
-    $('fLeftNote').textContent = `${money(s.pay)} pay + ${money(s.rent)} board freed, minus ${money(s.running)} running costs`;
-
-    $('sumLine').textContent = `${s.rate}% · ${money(s.expenses)}/mo expenses · ${s.holdMonths}-month limit`;
-
-    // dock
-    $('dPrice').textContent = short(s.price);
-    $('dMon').textContent = `${money(r.monthly)}/mo`;
-    const dotColor = r.kept < 0 ? 'var(--bad)' : r.left < 0 ? 'var(--warn)' : 'var(--good)';
-    $('dSub').innerHTML = `<span class="dock-dot" style="background:${dotColor}"></span>${money(r.fortnightly)}/fn · keep ${short(r.kept)}`;
-
-    const prices = new Set([900000,950000,1000000,1050000,1100000,1150000,1200000,1250000,1300000]);
-    prices.add(Math.round(s.price));
-    $('ladder').innerHTML = [...prices].sort((a,b)=>a-b).map(p => {
-      const x = calc(p);
-      return `<tr data-p="${p}" tabindex="0" class="${p===Math.round(s.price)?'cur':''}"><td>${short(p)}</td><td class="wide-only">${money(x.L)}</td><td class="wide-only">${money(x.deposit)}</td><td class="wide-only">${money(x.D)}</td><td>${money(x.monthly)}</td><td>${money(x.fortnightly)}</td><td class="${x.kept<0?'neg':''}">${short(x.kept)}</td><td class="${x.left<0?'neg':''}">${money(x.left)}</td></tr>`;
-    }).join('');
-  }
-
-  function save(){ try { localStorage.setItem(KEY, JSON.stringify(s)); } catch(e) {} }
-  function update(){ save(); renderInputs(); render(); }
-  function setPrice(p){ s.price = Math.max(100000, Math.min(5000000, Math.round(p))); update(); }
-
-  MONEY.concat(PLAIN).forEach(k => {
-    const el = $(k);
-    el.addEventListener('input', () => { s[k] = parse(el.value); save(); render(); $('priceRange').value = Math.min(1500000, Math.max(700000, s.price)); });
-    el.addEventListener('blur', renderInputs);
-    el.addEventListener('focus', () => { setTimeout(() => { try { el.select(); } catch(e) {} }, 0); });
-    el.addEventListener('keydown', e => { if (e.key === 'Enter') el.blur(); });
-  });
-  $('fhb').addEventListener('change', e => { s.fhb = e.target.checked; update(); });
-  $('priceRange').addEventListener('input', e => setPrice(+e.target.value));
-  document.addEventListener('click', e => {
-    const sg = e.target.closest('[data-strat]'); if (sg) { s.strategy = sg.dataset.strat; update(); return; }
-    const am = e.target.closest('[data-amt]'); if (am) { const k = am.dataset.amt; s[k] = Math.max(0, s[k] + (+am.dataset.by)); update(); return; }
-    const st = e.target.closest('[data-step]'); if (st) { setPrice(s.price + (+st.dataset.step)); return; }
-    const c = e.target.closest('.chip, tbody tr'); if (!c) return;
-    setPrice(+c.dataset.p);
-    if (c.tagName === 'TR') window.scrollTo({top: 0, behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth'});
-  });
-  document.addEventListener('keydown', e => { const t = e.target; if (t.tagName === 'TR' && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); setPrice(+t.dataset.p); } });
-  $('reset').addEventListener('click', () => { s = Object.assign({}, DEFAULTS); update(); });
-
-  renderInputs(); render();
-})();
-</script>
+<script type="module" src="./js/app.js"></script>
 </body>
 </html>
