@@ -6,20 +6,508 @@
 <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; manifest-src 'self'; connect-src 'none'; form-action 'self'; base-uri 'none'">
 <meta name="referrer" content="no-referrer">
 <meta name="color-scheme" content="light dark">
-<meta name="theme-color" content="#1E6A54">
-<title>Mortgage Buddy — Open Home &amp; Purchase Calculator</title>
-<link rel="manifest" href="./manifest.json">
-<link rel="icon" href="./icon.svg" type="image/svg+xml">
-<link rel="apple-touch-icon" href="./icon.svg">
+<meta name="theme-color" content="#F4F3EE">
+<title>Mortgage Buddy — Pre-Approval &amp; Property Calculator</title>
+<link rel="manifest" href="./manifest.json?v=3">
+<link rel="icon" href="./icon.svg?v=3" type="image/svg+xml">
+<link rel="apple-touch-icon" href="./icon.svg?v=3">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&family=Public+Sans:wght@400;500;600;700&display=swap">
-<link rel="stylesheet" href="./styles.css">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="./styles.css?v=6">
 </head>
 <body>
 
 <div class="wrap">
-  <!-- White-label Broker Banner (shown when broker details are configured or via Client Link) -->
+  <header>
+    <div class="top-bar">
+      <div class="brand-head">
+        <div class="bento-icon" aria-hidden="true">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5L12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1v-9.5z"/></svg>
+        </div>
+        <div>
+          <div class="sub-eyebrow" id="eyebrowState">NSW · First Home (5% Scheme)</div>
+          <h1>Mortgage Buddy</h1>
+        </div>
+      </div>
+      <div class="top-actions">
+        <button type="button" class="btn-pill btn-pill-blush" id="btnToggleSetup" aria-expanded="false" aria-controls="setupPanel">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="17" y1="16" x2="23" y2="16"/></svg>
+          Edit My Numbers
+        </button>
+        <button type="button" class="btn-pill btn-pill-subtle" id="btnSharePartner" title="Copy a link with your current numbers and property shortlist">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>
+          Share
+        </button>
+      </div>
+    </div>
+    <p class="lede" id="ledeText" hidden></p>
+
+    <!-- 4-Card Bento Summary Grid (Tap any card to open the Edit Modal) -->
+    <div class="bento-bar" aria-label="Your pre-approval numbers (tap any card to edit)">
+      <button type="button" class="bento-mini" data-open-setup="savings" title="Tap to edit your available savings">
+        <div class="bento-mini-top">
+          <span class="bento-icon" aria-hidden="true">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="20" height="14" rx="3"/><path d="M16 12h.01"/><path d="M2 10h20"/></svg>
+          </span>
+          <span class="bento-dots" aria-hidden="true"><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="19" cy="12" r="1.8"/></svg></span>
+        </div>
+        <span class="bento-label">Available Savings</span>
+        <strong class="bento-val num" id="baseSavingsPill">$120k</strong>
+      </button>
+
+      <button type="button" class="bento-mini" data-open-setup="maxLoan" title="Tap to edit your maximum pre-approved loan">
+        <div class="bento-mini-top">
+          <span class="bento-icon" aria-hidden="true">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="22" x2="21" y2="22"/><line x1="6" y1="18" x2="6" y2="11"/><line x1="10" y1="18" x2="10" y2="11"/><line x1="14" y1="18" x2="14" y2="11"/><line x1="18" y1="18" x2="18" y2="11"/><polygon points="12 2 20 7 4 7"/></svg>
+          </span>
+          <span class="bento-dots" aria-hidden="true"><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="19" cy="12" r="1.8"/></svg></span>
+        </div>
+        <span class="bento-label">Max Pre-Approval</span>
+        <strong class="bento-val num" id="baseMaxLoanPill">$1.2M</strong>
+      </button>
+
+      <button type="button" class="bento-mini" data-open-setup="rate" title="Tap to edit your interest rate and loan term">
+        <div class="bento-mini-top">
+          <span class="bento-icon" aria-hidden="true">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="5" x2="5" y2="19"/><circle cx="6.5" cy="6.5" r="2.5"/><circle cx="17.5" cy="17.5" r="2.5"/></svg>
+          </span>
+          <span class="bento-dots" aria-hidden="true"><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="19" cy="12" r="1.8"/></svg></span>
+        </div>
+        <span class="bento-label">Interest Rate</span>
+        <strong class="bento-val num" id="baseRatePill">6.5%</strong>
+      </button>
+
+      <button type="button" class="bento-mini" data-open-setup="buyerTypeSelect" title="Tap to edit your buyer profile and state">
+        <div class="bento-mini-top">
+          <span class="bento-icon" aria-hidden="true">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+          </span>
+          <span class="bento-dots" aria-hidden="true"><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="19" cy="12" r="1.8"/></svg></span>
+        </div>
+        <span class="bento-label">Max Purchase Price</span>
+        <strong class="bento-val num" id="baseMaxPricePill">$1.15M</strong>
+        <span id="baseProfilePill" hidden>NSW · FHB 5%</span>
+      </button>
+    </div>
+    <!-- Hidden button alias for backwards compatibility -->
+    <button type="button" id="baseCeilingBtn" hidden></button>
+  </header>
+
+  <!-- Modal Backdrop + Slide-Up / Centered Modal for "Edit My Numbers" -->
+  <div id="setupModalBackdrop" class="modal-backdrop" hidden>
+    <section id="setupPanel" class="modal-sheet" role="dialog" aria-modal="true" aria-labelledby="setupModalTitle">
+      <div class="modal-drag-handle" aria-hidden="true"></div>
+      <div class="modal-head">
+        <div>
+          <h2 id="setupModalTitle">Edit My Pre-Approval Numbers</h2>
+          <p class="foot">Enter your baseline numbers from your broker once. Changes update live.</p>
+        </div>
+        <button type="button" class="modal-close-x" id="btnCloseSetupX" aria-label="Close settings modal">✕</button>
+      </div>
+
+      <div class="modal-body">
+        <div class="setup-sections">
+          <div class="setup-card-group">
+            <h3 class="setup-group-title">Buyer Profile &amp; State</h3>
+            <div class="state-select-group">
+              <select id="buyerTypeSelect" class="select-pill" aria-label="Buyer profile">
+                <option value="fhb_scheme">First Home (5% Scheme)</option>
+                <option value="fhb_standard">First Home (Standard)</option>
+                <option value="standard">Next Home / Standard Buyer</option>
+              </select>
+              <select id="stateSelect" class="select-pill" aria-label="Australian state or territory">
+                <option value="NSW">NSW</option>
+                <option value="VIC">VIC</option>
+                <option value="QLD">QLD</option>
+                <option value="WA">WA</option>
+                <option value="SA">SA</option>
+                <option value="TAS">TAS</option>
+                <option value="ACT">ACT</option>
+                <option value="NT">NT</option>
+              </select>
+              <select id="regionSelect" class="select-pill" aria-label="Region"></select>
+              <span class="cap-pill num" id="capPill">5% scheme cap: $1.5M</span>
+            </div>
+            <label class="check" id="lmiCheckWrap" hidden>
+              <input id="allowLmi" type="checkbox">
+              Allow &lt;20% deposit with Lenders Mortgage Insurance (up to 90% LVR)
+            </label>
+          </div>
+
+          <div class="setup-card-group">
+            <h3 class="setup-group-title">Savings, Pre-Approval Cap &amp; Rate</h3>
+            <div class="grid-in">
+              <div class="field">
+                <label for="savings">Available funds / savings</label>
+                <div class="amt">
+                  <button type="button" class="step" data-amt="savings" data-by="-5000" aria-label="$5,000 less savings">−</button>
+                  <input id="savings" type="text" inputmode="numeric" enterkeyhint="next">
+                  <button type="button" class="step" data-amt="savings" data-by="5000" aria-label="$5,000 more savings">+</button>
+                </div>
+                <small>Total cash for deposit, stamp duty, fees &amp; buffer</small>
+              </div>
+              <div class="field">
+                <label for="maxLoan">Max pre-approved loan</label>
+                <input id="maxLoan" type="text" inputmode="numeric" enterkeyhint="next">
+                <small>Maximum loan from your broker or bank</small>
+              </div>
+              <div class="field">
+                <label for="rate">Interest rate (%)</label>
+                <input id="rate" type="text" inputmode="decimal" enterkeyhint="next">
+                <small>Quoted product interest rate</small>
+              </div>
+              <div class="field">
+                <label for="years">Loan term (years)</label>
+                <input id="years" type="text" inputmode="numeric" enterkeyhint="next">
+                <small>Standard is 30 years</small>
+              </div>
+              <div class="field">
+                <label for="costs">Legal, inspections &amp; fees</label>
+                <input id="costs" type="text" inputmode="numeric" enterkeyhint="next">
+                <small>Conveyancing, pest/building, transfer</small>
+              </div>
+              <div class="field">
+                <label for="months">Months until you buy</label>
+                <input id="months" type="text" inputmode="numeric" enterkeyhint="next">
+                <small>0 if buying now; adds future savings if &gt; 0</small>
+              </div>
+              <div class="field" id="otherCashField">
+                <label for="otherCash">Other cash (not used for house)</label>
+                <input id="otherCash" type="text" inputmode="numeric" enterkeyhint="next">
+                <small>Counted by 5% scheme hold-back rule</small>
+              </div>
+              <div class="field" id="expensesField">
+                <label for="expenses">Monthly living expenses</label>
+                <input id="expenses" type="text" inputmode="numeric" enterkeyhint="next">
+                <small>Used for 5% scheme hold-back cap</small>
+              </div>
+              <div class="field" id="holdMonthsField">
+                <label for="holdMonths">Hold-back cap (months)</label>
+                <input id="holdMonths" type="text" inputmode="numeric" enterkeyhint="next">
+                <small>Months of (expenses + repayment) allowed</small>
+              </div>
+            </div>
+          </div>
+
+          <div class="setup-card-group">
+            <label class="check" style="margin-top:0">
+              <input id="showBudget" type="checkbox">
+              <strong>Include optional monthly cashflow / leftover budget calculator</strong>
+            </label>
+            <div id="budgetFieldsWrap" class="grid-in" hidden>
+              <div class="field">
+                <div class="label-row">
+                  <label for="pay">Housing budget / saving</label>
+                  <span class="freq-toggle" role="group" aria-label="Housing budget frequency">
+                    <button type="button" data-freq-field="pay" data-freq-val="mo" aria-pressed="true">/mo</button>
+                    <button type="button" data-freq-field="pay" data-freq-val="fn" aria-pressed="false">/fn</button>
+                  </span>
+                </div>
+                <input id="pay" type="text" inputmode="numeric" enterkeyhint="next">
+                <small id="payFreqHint">Per month toward home</small>
+              </div>
+              <div class="field">
+                <div class="label-row">
+                  <label for="rent">Rent / board freed up</label>
+                  <span class="freq-toggle" role="group" aria-label="Rent or board frequency">
+                    <button type="button" data-freq-field="rent" data-freq-val="mo" aria-pressed="true">/mo</button>
+                    <button type="button" data-freq-field="rent" data-freq-val="fn" aria-pressed="false">/fn</button>
+                  </span>
+                </div>
+                <input id="rent" type="text" inputmode="numeric" enterkeyhint="next">
+                <small id="rentFreqHint">Per month once you move in</small>
+              </div>
+              <div class="field">
+                <label for="running">Home running costs (/mo)</label>
+                <input id="running" type="text" inputmode="numeric" enterkeyhint="done">
+                <small>Council rates, water, insurance (excl. strata)</small>
+              </div>
+            </div>
+          </div>
+
+          <!-- Broker White-Label Setup tucked inside Modal -->
+          <details class="broker-setup" id="brokerPanel">
+            <summary>Broker mode &amp; white-label client link</summary>
+            <div class="grid-in">
+              <div class="field"><label for="br_clientName">Client name(s)</label><input id="br_clientName" type="text" placeholder="e.g. Sarah &amp; Tom"></div>
+              <div class="field"><label for="br_brokerName">Your name (Broker)</label><input id="br_brokerName" type="text" placeholder="e.g. Alex Mercer"></div>
+              <div class="field"><label for="br_company">Brokerage / firm</label><input id="br_company" type="text" placeholder="e.g. Harbour Mortgage Advisory"></div>
+              <div class="field"><label for="br_acl">ACL / Credit Rep #</label><input id="br_acl" type="text" placeholder="e.g. Credit Rep 512345"></div>
+              <div class="field"><label for="br_phone">Broker phone</label><input id="br_phone" type="tel" placeholder="e.g. 0400 123 456"></div>
+              <div class="field"><label for="br_email">Broker email</label><input id="br_email" type="email" placeholder="e.g. alex@harbour.com.au"></div>
+              <div class="field"><label for="br_bookingUrl">Booking link (optional)</label><input id="br_bookingUrl" type="url" placeholder="https://cal.com/your-link"></div>
+              <div class="field"><label for="br_accent">Brand colour (hex)</label><input id="br_accent" type="text" placeholder="#463F3A"></div>
+              <div class="field">
+                <label for="br_minDepPct">Minimum deposit % (Max LVR)</label>
+                <select id="br_minDepPct" class="select-pill" style="width:100%">
+                  <option value="5">5% min deposit (95% LVR — Default)</option>
+                  <option value="2">2% min deposit (98% High-LVR Lender)</option>
+                  <option value="3">3% min deposit (97% LVR)</option>
+                  <option value="10">10% min deposit (90% LVR)</option>
+                  <option value="20">20% min deposit (80% LVR)</option>
+                </select>
+                <small>Only set below 5% if the client's lender offers a 97%–98% LVR product</small>
+              </div>
+            </div>
+            <div class="share-bar">
+              <button type="button" class="btn btn-primary" id="btnCopyClientLink">Copy Branded Client Link</button>
+              <small class="foot">Generates a ready-to-use Client View link with your branding banner and pre-approval numbers.</small>
+            </div>
+          </details>
+        </div>
+      </div>
+
+      <div class="modal-foot">
+        <button class="btn" id="reset" type="button">Reset Defaults</button>
+        <span class="foot" id="sumLine" hidden></span>
+        <button type="button" class="btn btn-primary modal-done-btn" id="btnCloseSetup">Save &amp; Done</button>
+      </div>
+    </section>
+  </div>
+
+  <!-- Main Workspace: 2 Interactive Levers (Left) + Clear Answers (Right) -->
+  <div class="cols">
+    <div class="stack">
+      <!-- Lever 1: Property Price -->
+      <section class="panel" aria-labelledby="price-l">
+        <div class="lever-head">
+          <div class="card-title-group">
+            <span class="bento-icon" aria-hidden="true">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5L12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1v-9.5z"/></svg>
+            </span>
+            <label id="price-l" for="price" class="card-label">Property Price</label>
+          </div>
+          <button type="button" class="ceiling-btn" id="maxPriceTopHint" title="Tap to load your maximum affordable purchase price">Max: $1.15M</button>
+        </div>
+        <div class="price-line">
+          <button type="button" class="step" data-step="-10000" aria-label="Lower price by $10,000">−</button>
+          <input id="price" class="price-input" type="text" inputmode="numeric" autocomplete="off" enterkeyhint="done">
+          <button type="button" class="step" data-step="10000" aria-label="Raise price by $10,000">+</button>
+        </div>
+        <input id="priceRange" type="range" min="700000" max="1500000" step="5000" aria-label="Property price slider">
+        <div class="chips" id="chips"></div>
+
+        <!-- Compact Inline Strata Row -->
+        <div class="strata-inline">
+          <div class="strata-label">
+            <span id="strataTitle">Strata / body corporate (per quarter)</span>
+            <small id="strataHint">$0 for houses, or quarterly strata for units</small>
+          </div>
+          <div class="strata-controls">
+            <button type="button" class="step" data-amt="strataQtr" data-by="-250" aria-label="$250 less quarterly strata">−</button>
+            <input id="strataQtr" type="text" inputmode="numeric" enterkeyhint="done" aria-label="Quarterly strata fee">
+            <button type="button" class="step" data-amt="strataQtr" data-by="250" aria-label="$250 more quarterly strata">+</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- Lever 2: Cash Kept <-> Deposit / Loan Size -->
+      <section class="panel" aria-labelledby="split-l">
+        <div class="lever-head">
+          <div class="card-title-group">
+            <span class="bento-icon" aria-hidden="true">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="17" y1="16" x2="23" y2="16"/></svg>
+            </span>
+            <span id="split-l" class="card-label">Cash Kept ↔ Deposit &amp; Loan</span>
+          </div>
+        </div>
+
+        <div class="split-slider-wrap">
+          <div class="split-slider-row">
+            <button type="button" class="slider-end-btn" id="splitMinBtn" data-split-end="min" aria-pressed="true" title="Minimum deposit / Keep max available cash">Min</button>
+            <input id="splitRange" type="range" min="50000" max="200000" step="1000" aria-label="Slide between keeping more cash or putting down a bigger deposit">
+            <button type="button" class="slider-end-btn" id="splitMaxBtn" data-split-end="max" aria-pressed="false" title="Maximum deposit from available funds ($0 cash kept)">Max</button>
+          </div>
+          <div class="split-axis">
+            <span id="splitMinLabel">Keep max cash</span>
+            <span id="splitMaxLabel">Max deposit ($0 kept)</span>
+          </div>
+        </div>
+
+        <!-- 3 Synchronized Bento Tap-to-Type Boxes -->
+        <div class="split-cards">
+          <div class="split-card" id="cardKeep">
+            <div class="split-card-top">
+              <label for="keepTarget">Cash You Keep</label>
+            </div>
+            <input id="keepTarget" class="split-input" type="text" inputmode="numeric" enterkeyhint="done" title="Tap to type the cash amount you want to keep">
+            <small id="fLimit">Max keepable: $44,593</small>
+            <div class="meter" id="meterWrap" hidden><span id="meter"></span></div>
+          </div>
+
+          <div class="split-card" id="cardDeposit">
+            <div class="split-card-top">
+              <label for="depositTarget">Your Deposit</label>
+            </div>
+            <input id="depositTarget" class="split-input" type="text" inputmode="numeric" enterkeyhint="done" title="Tap to type a specific deposit amount">
+            <small id="fDepPct">5.0% of price</small>
+          </div>
+
+          <div class="split-card" id="cardLoan">
+            <div class="split-card-top">
+              <label for="loanTarget">Bank Loan</label>
+            </div>
+            <input id="loanTarget" class="split-input" type="text" inputmode="numeric" enterkeyhint="done" title="Tap to type a target loan amount">
+            <small id="fLvr">95.0% LVR</small>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <!-- Right Column: Instant Answers -->
+    <div class="stack">
+      <!-- Hero Repayments Card -->
+      <section class="panel hero-repay-card" aria-label="Estimated repayments">
+        <div class="lever-head">
+          <span class="card-label">Estimated Repayments</span>
+          <span class="rate-tag num" id="fRate">6.5% · 30 yrs</span>
+        </div>
+
+        <div class="repay-grid">
+          <div class="repay-box">
+            <span class="repay-lbl">Monthly</span>
+            <span class="v num" id="fMon">$5,532</span>
+            <small id="fLoanSummary">On a $875,000 loan</small>
+          </div>
+          <div class="repay-box">
+            <span class="repay-lbl">Fortnightly</span>
+            <span class="v num" id="fFn">$2,766</span>
+            <small id="fFnNote">Half the monthly amount</small>
+          </div>
+        </div>
+
+        <!-- Barcode Tick-Bar LVR Visualizer (inspired by Reference Image 2) -->
+        <div class="tick-meter-wrap" aria-hidden="true">
+          <div class="tick-meter-meta">
+            <span id="tickLoanLabel"><strong>95%</strong> Loan LVR</span>
+            <span id="tickDepLabel"><strong>5%</strong> Deposit</span>
+          </div>
+          <div class="tick-bar" id="lvrTickBar"></div>
+        </div>
+
+        <!-- Optional Monthly Leftover Row (shown only when showBudget is enabled) -->
+        <div class="budget-row" id="budgetSummaryRow" hidden>
+          <span class="repay-lbl">Left each month after mortgage</span>
+          <span class="v num" id="fLeft">$1,468</span>
+          <small id="fLeftNote"></small>
+        </div>
+
+        <!-- Hidden mirror spans for backwards compatibility -->
+        <span id="fLoan" hidden></span>
+        <span id="fDep" hidden></span>
+        <span id="fKept" hidden></span>
+      </section>
+
+      <!-- Visual Savings Breakdown Card -->
+      <section class="panel" aria-label="Where your savings go">
+        <div class="lever-head">
+          <span class="card-label">How Your Savings Are Split</span>
+          <span class="foot num" id="savingsLine"></span>
+        </div>
+        <div class="bar" id="bar" aria-hidden="true" style="margin-top:14px"></div>
+        <div class="legend" id="legend"></div>
+        <ul class="notes" id="notes"></ul>
+      </section>
+    </div>
+  </div>
+
+  <!-- Tabbed Comparison Card: Compare Prices vs Saved Homes -->
+  <section class="panel" aria-label="Price comparison and saved homes">
+    <div class="tabs-head">
+      <div class="tab-pills" role="tablist" aria-label="Comparison views">
+        <button type="button" role="tab" class="tab-btn" id="tabBtnLadder" data-tab="ladder" aria-selected="true" aria-controls="tabPanelLadder">Compare Prices</button>
+        <button type="button" role="tab" class="tab-btn" id="tabBtnShortlist" data-tab="shortlist" aria-selected="false" aria-controls="tabPanelShortlist">Saved Homes (0)</button>
+      </div>
+
+      <!-- Compact range summary + Three-Dots Menu button -->
+      <div class="ladder-head-right" id="ladderHeadRight">
+        <span class="ladder-span num" id="ladderSpanLabel">8 prices: $700k → $1.15M</span>
+        <div class="popover-wrap">
+          <button type="button" class="dots-menu-btn" id="btnLadderMenu" aria-expanded="false" aria-controls="ladderMenuPopover" title="Edit price range and step increments">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="5" cy="12" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="19" cy="12" r="1.8"/></svg>
+          </button>
+          <div id="ladderMenuPopover" class="ladder-popover" hidden>
+            <div class="ladder-popover-title">Compare Prices Range</div>
+            <label class="field">
+              <span>Up to price ($)</span>
+              <input id="ladderMaxInput" type="text" inputmode="numeric" enterkeyhint="done" aria-label="Top price for comparison table">
+            </label>
+            <label class="field">
+              <span>Price step increment</span>
+              <select id="ladderStepSelect" class="select-pill" aria-label="Price increment step size">
+                <option value="0" id="ladderAutoOpt">Auto ($50k)</option>
+                <option value="25000">$25k</option>
+                <option value="50000">$50k</option>
+                <option value="75000">$75k</option>
+                <option value="100000">$100k</option>
+                <option value="150000">$150k</option>
+                <option value="200000">$200k</option>
+                <option value="250000">$250k</option>
+                <option value="500000">$500k</option>
+              </select>
+            </label>
+            <div class="ladder-popover-actions">
+              <button type="button" class="btn-icon" id="btnResetLadder" hidden>Reset to Max</button>
+              <button type="button" class="btn-sm btn-primary" id="btnCloseLadderMenu" style="margin-left:auto">Done</button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <p class="foot" id="tabSubtleHint" hidden></p>
+    </div>
+
+    <!-- Tab 1: Price Ladder -->
+    <div id="tabPanelLadder" role="tabpanel" aria-labelledby="tabBtnLadder">
+      <div class="ladder">
+        <table>
+          <thead>
+            <tr>
+              <th>Price</th>
+              <th class="wide-only">Loan</th>
+              <th class="wide-only">Deposit</th>
+              <th class="wide-only">Stamp duty</th>
+              <th>Monthly</th>
+              <th>Fortn.</th>
+              <th>Cash kept</th>
+            </tr>
+          </thead>
+          <tbody id="ladder"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Tab 2: Saved Homes Shortlist -->
+    <div id="tabPanelShortlist" role="tabpanel" aria-labelledby="tabBtnShortlist" hidden>
+      <form id="addShortlistForm" class="shortlist-form">
+        <div class="field">
+          <label for="slName">Save current property ($ price &amp; strata above)</label>
+          <input id="slName" type="text" placeholder="e.g. 14 Oak St, Townhouse 3" autocomplete="off">
+        </div>
+        <button type="submit" class="btn btn-primary">+ Save Property</button>
+      </form>
+      <p id="shortlistEmpty" class="shortlist-empty">No properties saved yet. Enter a price above, then tap <strong>+ Save Property</strong> to compare open homes side-by-side.</p>
+      <div id="shortlistTableWrap" class="ladder" hidden>
+        <table>
+          <thead>
+            <tr>
+              <th>Property</th>
+              <th>Price</th>
+              <th class="wide-only">Strata</th>
+              <th class="wide-only">Deposit</th>
+              <th class="wide-only">Stamp duty</th>
+              <th>Monthly</th>
+              <th>Cash kept</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody id="shortlistBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- Quiet Broker Contact Card at the bottom (only shown when broker details are configured) -->
   <aside id="brokerBanner" class="broker-banner" hidden aria-label="Mortgage broker details">
     <div class="broker-meta">
       <span class="broker-badge" id="bBadge"></span>
@@ -28,229 +516,6 @@
     </div>
     <div class="broker-ctas" id="bCtas"></div>
   </aside>
-
-  <header>
-    <div class="top-bar">
-      <div>
-        <div class="eyebrow" id="eyebrowState">NSW · First Home (5% Scheme)</div>
-        <h1>Mortgage Buddy</h1>
-        <p class="lede" id="ledeText">Enter a listing price at an open home or auction to see your deposit, stamp duty, the cash you can keep, and your repayments. Numbers stay on your device or in links you share.</p>
-      </div>
-      <div class="top-actions">
-        <button type="button" class="btn-sm" id="btnSharePartner" title="Copy a link with your current numbers and property shortlist">Share / Partner Sync</button>
-      </div>
-    </div>
-
-    <div class="state-bar" aria-label="Buyer profile, state and region settings">
-      <div class="state-select-group">
-        <label for="buyerTypeSelect" class="eyebrow">Buyer</label>
-        <select id="buyerTypeSelect" class="select-pill" aria-label="Buyer profile">
-          <option value="fhb_scheme">First Home (5% Scheme)</option>
-          <option value="fhb_standard">First Home (Standard)</option>
-          <option value="standard">Next Home / Standard Buyer</option>
-        </select>
-        <label for="stateSelect" class="eyebrow">State</label>
-        <select id="stateSelect" class="select-pill">
-          <option value="NSW">NSW</option>
-          <option value="VIC">VIC</option>
-          <option value="QLD">QLD</option>
-          <option value="WA">WA</option>
-          <option value="SA">SA</option>
-          <option value="TAS">TAS</option>
-          <option value="ACT">ACT</option>
-          <option value="NT">NT</option>
-        </select>
-        <select id="regionSelect" class="select-pill" aria-label="Region"></select>
-      </div>
-      <span class="cap-pill num" id="capPill">5% scheme cap: $1.5M</span>
-    </div>
-  </header>
-
-  <div class="cols">
-    <div class="stack">
-      <section class="panel o1" aria-labelledby="price-l">
-        <div class="price-top"><label id="price-l" for="price" class="eyebrow">Purchase price</label><span class="step-hint" id="maxPriceTopHint">± $10k</span></div>
-        <div class="price-line">
-          <button type="button" class="step" data-step="-10000" aria-label="Lower price by $10,000">−</button>
-          <input id="price" class="price-input" type="text" inputmode="numeric" autocomplete="off" enterkeyhint="done">
-          <button type="button" class="step" data-step="10000" aria-label="Raise price by $10,000">+</button>
-        </div>
-        <input id="priceRange" type="range" min="700000" max="1500000" step="5000" aria-label="Purchase price slider">
-        <div class="chips" id="chips"></div>
-        <div class="approach">
-          <span class="eyebrow" id="approach-l">Approach</span>
-          <div class="seg" role="radiogroup" aria-labelledby="approach-l">
-            <button type="button" role="radio" data-strat="max">Keep most cash</button>
-            <button type="button" role="radio" data-strat="set">Keep set cash</button>
-            <button type="button" role="radio" data-strat="loan">Target loan</button>
-          </div>
-          <p class="seg-help" id="stratHelp"></p>
-          <div class="field" id="keepField" hidden><label for="keepTarget">Cash buffer to keep</label>
-            <div class="amt"><button type="button" class="step" data-amt="keepTarget" data-by="-5000" aria-label="Keep $5,000 less">−</button><input id="keepTarget" type="text" inputmode="numeric" enterkeyhint="done"><button type="button" class="step" data-amt="keepTarget" data-by="5000" aria-label="Keep $5,000 more">+</button></div>
-            <small>Renovations, furniture and emergency money</small></div>
-          <div class="field" id="loanField" hidden><label for="loanTarget">Target loan amount</label>
-            <div class="amt"><button type="button" class="step" data-amt="loanTarget" data-by="-10000" aria-label="Borrow $10,000 less">−</button><input id="loanTarget" type="text" inputmode="numeric" enterkeyhint="done"><button type="button" class="step" data-amt="loanTarget" data-by="10000" aria-label="Borrow $10,000 more">+</button></div>
-            <small>Test how a specific loan size changes your repayments, deposit &amp; leftover cash</small>
-            <div class="loan-max-hint" id="loanMaxHint"></div>
-          </div>
-        </div>
-        <div class="approach">
-          <span class="eyebrow">Your cash &amp; property strata</span>
-          <div class="cash-grid">
-            <div class="field"><label for="savings">Available funds / savings</label>
-              <div class="amt"><button type="button" class="step" data-amt="savings" data-by="-1000" aria-label="$1,000 less savings">−</button><input id="savings" type="text" inputmode="numeric" enterkeyhint="done"><button type="button" class="step" data-amt="savings" data-by="1000" aria-label="$1,000 more savings">+</button></div>
-              <small id="savingsHint">Savings or sale proceeds for deposit, stamp duty and costs</small></div>
-            <div class="field" id="otherCashField"><label for="otherCash">Other cash</label>
-              <div class="amt"><button type="button" class="step" data-amt="otherCash" data-by="-1000" aria-label="$1,000 less other cash">−</button><input id="otherCash" type="text" inputmode="numeric" enterkeyhint="done"><button type="button" class="step" data-amt="otherCash" data-by="1000" aria-label="$1,000 more other cash">+</button></div>
-              <small>FHSS tax money, other accounts. Counted by the hold-back rule, not used for the house</small></div>
-          </div>
-          <div class="field">
-            <label for="strataQtr">Strata / body corporate (per quarter)</label>
-            <div class="amt">
-              <button type="button" class="step" data-amt="strataQtr" data-by="-250" aria-label="$250 less quarterly strata">−</button>
-              <input id="strataQtr" type="text" inputmode="numeric" enterkeyhint="done">
-              <button type="button" class="step" data-amt="strataQtr" data-by="250" aria-label="$250 more quarterly strata">+</button>
-            </div>
-            <small>Set to $0 for freestanding houses, or enter quarterly strata for apartments/townhouses</small>
-          </div>
-        </div>
-      </section>
-
-      <div id="verdict" class="verdict o2" role="status" aria-live="polite"></div>
-      <ul class="notes o4" id="notes"></ul>
-
-      <section class="panel o5">
-        <h2>Where your funds go</h2>
-        <p class="foot" id="savingsLine" style="margin:2px 0 12px"></p>
-        <div class="bar" id="bar" aria-hidden="true"></div>
-        <div class="legend" id="legend"></div>
-      </section>
-    </div>
-
-    <div class="stack">
-      <section class="figs o3" aria-label="Loan and repayments">
-        <div class="fig"><span class="eyebrow">Monthly</span><span class="v" id="fMon"></span><small id="fRate"></small></div>
-        <div class="fig"><span class="eyebrow">Fortnightly</span><span class="v" id="fFn"></span><small id="fFnNote"></small></div>
-        <div class="fig"><span class="eyebrow">Borrowed</span><span class="v" id="fLoan"></span><small id="fLvr"></small></div>
-        <div class="fig"><span class="eyebrow">Deposit</span><span class="v" id="fDep"></span><small id="fDepPct"></small></div>
-        <div class="fig wide"><span class="eyebrow">Cash you keep</span><span class="v" id="fKept"></span><small id="fLimit"></small><div class="meter" id="meterWrap"><span id="meter"></span></div></div>
-        <div class="fig wide"><span class="eyebrow">Left each month after the mortgage</span><span class="v" id="fLeft"></span><small id="fLeftNote"></small></div>
-      </section>
-
-      <details class="panel o6" id="settings">
-        <summary><div><h2>Your numbers</h2><p class="sum-line num" id="sumLine"></p></div></summary>
-        <div class="grid-in">
-          <div class="field"><label for="months">Months until you buy</label><input id="months" type="text" inputmode="numeric" enterkeyhint="next"><small>Adds your regular saving to available funds</small></div>
-          <div class="field"><label for="rate">Interest rate (%)</label><input id="rate" type="text" inputmode="decimal" enterkeyhint="next"><small>Your quoted rate</small></div>
-          <div class="field"><label for="years">Loan length (years)</label><input id="years" type="text" inputmode="numeric" enterkeyhint="next"></div>
-          <div class="field" id="expensesField"><label for="expenses">Monthly living expenses</label><input id="expenses" type="text" inputmode="numeric" enterkeyhint="next"><small>For the 5% scheme hold-back limit</small></div>
-          <div class="field" id="holdMonthsField"><label for="holdMonths">Hold-back limit (months)</label><input id="holdMonths" type="text" inputmode="numeric" enterkeyhint="next"><small>Expenses + repayments</small></div>
-          <div class="field"><label for="costs">Legal, inspections, other</label><input id="costs" type="text" inputmode="numeric" enterkeyhint="next"></div>
-          <div class="field"><label for="maxLoan">Maximum loan</label><input id="maxLoan" type="text" inputmode="numeric" enterkeyhint="next"><small>Pre-approval cap from your broker</small></div>
-          <div class="field">
-            <div class="label-row">
-              <label for="pay">Housing budget / saving</label>
-              <span class="freq-toggle" role="group" aria-label="Housing budget frequency">
-                <button type="button" data-freq-field="pay" data-freq-val="mo" aria-pressed="true">/mo</button>
-                <button type="button" data-freq-field="pay" data-freq-val="fn" aria-pressed="false">/fn</button>
-              </span>
-            </div>
-            <input id="pay" type="text" inputmode="numeric" enterkeyhint="next">
-            <small id="payFreqHint">Per month toward home</small>
-          </div>
-          <div class="field">
-            <div class="label-row">
-              <label for="rent">Rent / board freed up</label>
-              <span class="freq-toggle" role="group" aria-label="Rent or board frequency">
-                <button type="button" data-freq-field="rent" data-freq-val="mo" aria-pressed="true">/mo</button>
-                <button type="button" data-freq-field="rent" data-freq-val="fn" aria-pressed="false">/fn</button>
-              </span>
-            </div>
-            <input id="rent" type="text" inputmode="numeric" enterkeyhint="next">
-            <small id="rentFreqHint">Per month once you move in</small>
-          </div>
-          <div class="field"><label for="running">Base home running costs</label><input id="running" type="text" inputmode="numeric" enterkeyhint="done"><small>Council, water, insurance, upkeep (excl. strata)</small></div>
-        </div>
-        <label class="check" id="lmiCheckWrap" hidden><input id="allowLmi" type="checkbox"> Allow &lt;20% deposit with Lenders Mortgage Insurance (up to 90% LVR)</label>
-        <button class="btn" id="reset" type="button" style="margin-top:12px">Reset to defaults</button>
-      </details>
-    </div>
-  </div>
-
-  <!-- Property Shortlist & Comparison -->
-  <section class="panel" aria-labelledby="shortlist-h">
-    <div class="shortlist-head">
-      <div>
-        <h2 id="shortlist-h">Property shortlist</h2>
-        <p class="foot" style="margin-top:2px">Save open homes at their target price and strata to compare side-by-side or send to your partner/broker.</p>
-      </div>
-    </div>
-    <form id="addShortlistForm" class="shortlist-form">
-      <div class="field">
-        <label for="slName">Address or nickname</label>
-        <input id="slName" type="text" placeholder="e.g. 14 Oak St, Townhouse 3" autocomplete="off">
-      </div>
-      <div class="field">
-        <small>Saves current price &amp; strata above</small>
-        <button type="submit" class="btn btn-primary" style="width:100%">+ Save current property</button>
-      </div>
-    </form>
-    <p id="shortlistEmpty" class="shortlist-empty">No properties saved yet. Enter a price (and quarterly strata if applicable) above, then tap <strong>+ Save current property</strong>.</p>
-    <div id="shortlistTableWrap" class="ladder" hidden>
-      <table>
-        <thead>
-          <tr>
-            <th>Property</th>
-            <th>Price</th>
-            <th class="wide-only">Strata</th>
-            <th class="wide-only">Deposit</th>
-            <th class="wide-only">Stamp duty</th>
-            <th>Monthly</th>
-            <th>Keep</th>
-            <th>Left/mo</th>
-            <th>Action</th>
-          </tr>
-        </thead>
-        <tbody id="shortlistBody"></tbody>
-      </table>
-    </div>
-  </section>
-
-  <!-- Price Ladder -->
-  <section class="panel">
-    <h2>Price ladder</h2>
-    <p class="foot" style="margin-top:2px">Same settings and approach across your target range. Tap any row to load it.</p>
-    <div class="ladder">
-      <table>
-        <thead><tr><th>Price</th><th class="wide-only">Borrowed</th><th class="wide-only">Deposit</th><th class="wide-only">Stamp duty</th><th>Monthly</th><th>Fortn.</th><th>Keep</th><th>Left/mo</th></tr></thead>
-        <tbody id="ladder"></tbody>
-      </table>
-    </div>
-  </section>
-
-  <!-- Broker White-Label Setup -->
-  <details class="panel broker-setup" id="brokerPanel">
-    <summary>
-      <div>
-        <h2>Broker mode &amp; white-label client link</h2>
-        <p class="sum-line">Configure client buyer profile, pre-approval numbers &amp; your brokerage branding to generate a shareable client companion link</p>
-      </div>
-    </summary>
-    <div class="grid-in">
-      <div class="field"><label for="br_clientName">Client name(s)</label><input id="br_clientName" type="text" placeholder="e.g. Sarah &amp; Tom"></div>
-      <div class="field"><label for="br_brokerName">Your name (Broker)</label><input id="br_brokerName" type="text" placeholder="e.g. Alex Mercer"></div>
-      <div class="field"><label for="br_company">Brokerage / firm</label><input id="br_company" type="text" placeholder="e.g. Harbour Mortgage Advisory"></div>
-      <div class="field"><label for="br_acl">ACL / Credit Rep #</label><input id="br_acl" type="text" placeholder="e.g. Credit Rep 512345"></div>
-      <div class="field"><label for="br_phone">Broker phone</label><input id="br_phone" type="tel" placeholder="e.g. 0400 123 456"></div>
-      <div class="field"><label for="br_email">Broker email</label><input id="br_email" type="email" placeholder="e.g. alex@harbour.com.au"></div>
-      <div class="field"><label for="br_bookingUrl">Booking link (optional)</label><input id="br_bookingUrl" type="url" placeholder="https://cal.com/your-link"></div>
-      <div class="field"><label for="br_accent">Brand colour (hex)</label><input id="br_accent" type="text" placeholder="#1E6A54"></div>
-    </div>
-    <div class="share-bar">
-      <button type="button" class="btn btn-primary" id="btnCopyClientLink">Copy Branded Client Link</button>
-      <small class="foot">Generates a ready-to-use Client View link with your branding banner, contact buttons, buyer profile (FHB or Next Home), and the pre-approval numbers entered above.</small>
-    </div>
-  </details>
 
   <p class="foot" id="footNote"></p>
 </div>
