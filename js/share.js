@@ -7,6 +7,7 @@ const KEY_MAP = {
   region: 'rg',
   buyerType: 'bt',
   allowLmi: 'al',
+  showBudget: 'sb',
   price: 'p',
   savings: 's',
   otherCash: 'o',
@@ -26,7 +27,10 @@ const KEY_MAP = {
   fhb: 'f',
   strategy: 'sg',
   keepTarget: 'kt',
-  loanTarget: 'lt'
+  loanTarget: 'lt',
+  depositTarget: 'dt',
+  ladderMax: 'lm',
+  ladderStep: 'ls'
 };
 
 const REV_MAP = Object.fromEntries(Object.entries(KEY_MAP).map(([k, v]) => [v, k]));
@@ -72,7 +76,8 @@ export function encodeSharePayload(s, options = { includeShortlist: true, client
       ph: s.broker.phone || '',
       em: s.broker.email || '',
       bu: s.broker.bookingUrl || '',
-      cl: s.broker.accent || '#1E6A54'
+      cl: s.broker.accent || '#463F3A',
+      md: Number(s.broker.minDepPct) || 5
     };
   }
   if (options.clientMode) {
@@ -90,16 +95,16 @@ export function decodeSharePayload(encoded) {
     for (const [shortKey, val] of Object.entries(raw)) {
       const fullKey = REV_MAP[shortKey];
       if (!fullKey) continue;
-      if (MONEY_KEYS.includes(fullKey) || PLAIN_KEYS.includes(fullKey)) {
+      if (MONEY_KEYS.includes(fullKey) || PLAIN_KEYS.includes(fullKey) || fullKey === 'ladderMax' || fullKey === 'ladderStep') {
         const n = Number(val);
         if (isFinite(n)) out[fullKey] = n;
-      } else if (fullKey === 'fhb' || fullKey === 'allowLmi') {
+      } else if (fullKey === 'fhb' || fullKey === 'allowLmi' || fullKey === 'showBudget') {
         out[fullKey] = Boolean(val);
       } else if (fullKey === 'buyerType' && ['fhb_scheme', 'fhb_standard', 'standard'].includes(val)) {
         out.buyerType = val;
       } else if ((fullKey === 'payFreq' || fullKey === 'rentFreq') && (val === 'mo' || val === 'fn')) {
         out[fullKey] = val;
-      } else if (fullKey === 'strategy' && ['max', 'set', 'loan'].includes(val)) {
+      } else if (fullKey === 'strategy' && ['max', 'set', 'loan', 'deposit'].includes(val)) {
         out.strategy = val;
       } else if (fullKey === 'state' && STATES[val]) {
         out.state = val;
@@ -129,7 +134,8 @@ export function decodeSharePayload(encoded) {
         phone: String(raw.br.ph || ''),
         email: String(raw.br.em || ''),
         bookingUrl: String(raw.br.bu || ''),
-        accent: /^#[0-9a-fA-F]{6}$/.test(String(raw.br.cl || '')) ? raw.br.cl : '#1E6A54'
+        accent: /^#[0-9a-fA-F]{6}$/.test(String(raw.br.cl || '')) ? raw.br.cl : '#463F3A',
+        minDepPct: isFinite(Number(raw.br.md)) && Number(raw.br.md) >= 2 ? Number(raw.br.md) : 5
       };
     }
     out._viewMode = raw.vw === 'client' ? 'client' : 'default';

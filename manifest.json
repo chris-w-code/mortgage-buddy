@@ -1,11 +1,11 @@
 {
-  "name": "Mortgage Buddy — Open Home & Purchase Calculator",
+  "name": "Mortgage Buddy",
   "short_name": "Mortgage Buddy",
-  "description": "Australian open-home and auction purchase calculator with 5% scheme hold-back rules, stamp duty across all states, and property shortlist.",
+  "description": "Pre-Approval & Open Home Property Calculator",
   "start_url": "./index.html",
   "display": "standalone",
-  "background_color": "#F3F6F4",
-  "theme_color": "#1E6A54",
+  "background_color": "#F4F3EE",
+  "theme_color": "#463F3A",
   "icons": [
     {
       "src": "./icon.svg",
