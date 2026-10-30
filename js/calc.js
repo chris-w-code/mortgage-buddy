@@ -5,6 +5,7 @@ export const DEFAULTS = {
   region: 'metro',
   buyerType: 'fhb_scheme', // 'fhb_scheme' | 'fhb_standard' | 'standard'
   allowLmi: false,
+  showBudget: false, // Off by default to keep UI simple
   price: 1000000,
   savings: 120000,
   otherCash: 0,
@@ -22,9 +23,12 @@ export const DEFAULTS = {
   running: 1000,
   strataQtr: 0,
   fhb: true,
-  strategy: 'max', // 'max' | 'set' | 'loan'
+  strategy: 'max', // 'max' | 'set' | 'loan' | 'deposit'
   keepTarget: 30000,
   loanTarget: 800000,
+  depositTarget: 100000,
+  ladderMax: 0, // 0 = auto (uses maxAfford ceiling)
+  ladderStep: 0, // 0 = auto proportional step
   shortlist: [],
   broker: {
     enabled: false,
@@ -35,13 +39,14 @@ export const DEFAULTS = {
     phone: '',
     email: '',
     bookingUrl: '',
-    accent: '#1E6A54'
+    accent: '#463F3A',
+    minDepPct: 5 // Default 5% minimum deposit (95% LVR); broker can set down to 2% (98% LVR)
   }
 };
 
 export const MONEY_KEYS = [
   'price', 'savings', 'otherCash', 'expenses', 'costs',
-  'maxLoan', 'pay', 'rent', 'running', 'keepTarget', 'loanTarget', 'strataQtr'
+  'maxLoan', 'pay', 'rent', 'running', 'keepTarget', 'loanTarget', 'depositTarget', 'strataQtr'
 ];
 
 export const PLAIN_KEYS = ['months', 'rate', 'years', 'holdMonths'];
@@ -81,7 +86,7 @@ export function pmt(L, rate, years) {
 }
 
 /**
- * Estimates Australian Lenders Mortgage Insurance (LMI) when LVR > 80% outside the 5% scheme.
+ * Estimates Australian Lenders Mortgage Insurance (LMI) when LVR > 80% and allowLmi is enabled.
  */
 export function estimateLmi(P, L) {
   if (P <= 0 || L <= 0) return 0;
@@ -107,6 +112,13 @@ export function getBuyerFlags(s) {
   return { buyerType: bt, isFhb, usesScheme };
 }
 
+export function getMinDepositPct(s) {
+  const brokerPct = s.broker && isFinite(Number(s.broker.minDepPct)) && Number(s.broker.minDepPct) > 0
+    ? Number(s.broker.minDepPct)
+    : 5;
+  return Math.max(2, Math.min(50, brokerPct));
+}
+
 export function calc(P, s, overrides = {}) {
   const stateCode = overrides.state || s.state || 'NSW';
   const region = overrides.region || s.region || 'metro';
@@ -114,6 +126,7 @@ export function calc(P, s, overrides = {}) {
   const schemeCap = getSchemeCap(stateCode, region);
   const strataQtr = overrides.strataQtr != null ? Number(overrides.strataQtr) : (Number(s.strataQtr) || 0);
   const strataMonthly = Math.max(0, strataQtr) / 3;
+  const strataFortnightly = (Math.max(0, strataQtr) * 4) / 26;
 
   const payMo = toMonthly(s.pay, s.payFreq || 'mo');
   const rentMo = toMonthly(s.rent, s.rentFreq || 'mo');
@@ -126,72 +139,82 @@ export function calc(P, s, overrides = {}) {
   const E = s.expenses;
   const M = s.holdMonths;
   const f = pmt(1, s.rate, s.years);
-  const L95 = 0.95 * P;
-  const L90 = 0.90 * P;
+
+  // Default minimum deposit is 5% (95% LVR), unless broker configured a custom minDepPct (down to 2% / 98% LVR)
+  const minPct = getMinDepositPct(s);
+  const maxLvr = 1 - minPct / 100;
+  const maxLvrLoan = maxLvr * P;
   const L80 = 0.80 * P;
 
   const eligibleForSchemeAtPrice = usesScheme && P <= schemeCap;
-  const nonSchemeMaxLvr = s.allowLmi ? 0.90 : 0.80;
-  const maxLvrLoan = eligibleForSchemeAtPrice ? L95 : nonSchemeMaxLvr * P;
-
   const denom = 1 - M * f;
   const Lrule = denom > 0 ? (M * E + P + D + C - S - O) / denom : Infinity;
 
-  let L, mode, capped = false, limited = null, target = null;
-
-  if (s.strategy === 'loan') {
-    const desiredLoan = Math.max(0, Number(s.loanTarget) || 0);
-    L = desiredLoan;
-    if (L > maxLvrLoan) {
-      L = maxLvrLoan;
-      limited = 'min';
-    }
-    if (L > s.maxLoan) {
-      capped = true;
-    }
-    if (eligibleForSchemeAtPrice && L > L80 + 1 && L > Lrule) {
-      L = Math.max(Lrule, L80);
-      limited = 'rule';
-    }
-    mode = eligibleForSchemeAtPrice
-      ? (L > L80 + 1 ? 'scheme' : 'twenty')
-      : (usesScheme && P > schemeCap ? 'priceCap' : (L > L80 + 1 ? 'lmi' : 'twenty'));
-  } else if (s.strategy === 'set') {
-    target = s.keepTarget;
-    L = P - (S - D - C - target);
-    if (L > maxLvrLoan) { L = maxLvrLoan; limited = 'min'; }
-    if (L > s.maxLoan) { L = s.maxLoan; capped = true; limited = 'maxloan'; }
-    if (eligibleForSchemeAtPrice && L > L80 + 1 && L > Lrule) {
-      L = Math.max(Lrule, L80);
-      limited = 'rule';
-    }
-    mode = eligibleForSchemeAtPrice
-      ? (L > L80 + 1 ? 'scheme' : 'twenty')
-      : (usesScheme && P > schemeCap ? 'priceCap' : (L > L80 + 1 ? 'lmi' : 'twenty'));
-  } else {
-    // 'max' strategy: keep most cash (put down minimum required deposit)
-    if (eligibleForSchemeAtPrice) {
-      if (Lrule >= L95) { L = L95; mode = 'min5'; }
-      else if (Lrule > L80) { L = Lrule; mode = 'rule'; }
-      else { L = L80; mode = 'twenty'; }
+  // Determine the maximum allowable loan at this price (which gives minimum required deposit & max keepable cash)
+  let maxLoanAtPrice;
+  let limitedByHoldback = false;
+  if (eligibleForSchemeAtPrice) {
+    if (Lrule >= maxLvrLoan) {
+      maxLoanAtPrice = maxLvrLoan;
+    } else if (Lrule > L80) {
+      maxLoanAtPrice = Lrule;
+      limitedByHoldback = true;
     } else {
-      L = maxLvrLoan;
-      mode = (usesScheme && P > schemeCap) ? 'priceCap' : (L > L80 + 1 ? 'lmi' : 'twenty');
+      maxLoanAtPrice = L80;
+      limitedByHoldback = true;
     }
-    if (L > s.maxLoan) { L = s.maxLoan; capped = true; }
+  } else {
+    maxLoanAtPrice = maxLvrLoan;
+  }
+
+  const cappedByMaxLoan = maxLoanAtPrice > s.maxLoan;
+  maxLoanAtPrice = Math.max(0, Math.min(maxLoanAtPrice, s.maxLoan));
+
+  const minDepAtPrice = Math.max(0, P - maxLoanAtPrice);
+  const schemeAtMaxLoan = eligibleForSchemeAtPrice && maxLoanAtPrice > L80 + 1;
+  const lmiAtMaxLoan = (!schemeAtMaxLoan && s.allowLmi && maxLoanAtPrice > L80 + 1)
+    ? estimateLmi(P, maxLoanAtPrice)
+    : 0;
+
+  // Raw cash left when putting down the minimum allowable deposit at this price
+  const rawMaxKeep = S - minDepAtPrice - D - C - lmiAtMaxLoan;
+  const maxKeepAtPrice = Math.max(0, rawMaxKeep);
+
+  // Maximum deposit the user can put in from savings (leaving $0 cash kept)
+  const maxDepFromSavings = Math.min(P, Math.max(minDepAtPrice, S - D - C));
+  const minLoanAtPrice = Math.max(0, P - maxDepFromSavings);
+
+  let L;
+  let mode = eligibleForSchemeAtPrice ? 'scheme' : 'standard';
+
+  if (rawMaxKeep < 0) {
+    // Price exceeds what savings can cover at minimum deposit (used by solveMaxPrice ceiling check)
+    L = maxLoanAtPrice;
+  } else if (s.strategy === 'loan') {
+    const desiredLoan = Math.max(0, Number(s.loanTarget) || 0);
+    L = Math.max(minLoanAtPrice, Math.min(maxLoanAtPrice, desiredLoan));
+  } else if (s.strategy === 'deposit') {
+    const desiredDep = Math.max(minDepAtPrice, Math.min(maxDepFromSavings, Number(s.depositTarget) || 0));
+    L = P - desiredDep;
+  } else if (s.strategy === 'set') {
+    const desiredKeep = Math.max(0, Math.min(maxKeepAtPrice, Number(s.keepTarget) || 0));
+    const desiredDep = Math.max(minDepAtPrice, Math.min(maxDepFromSavings, S - D - C - desiredKeep));
+    L = P - desiredDep;
+  } else {
+    // 'max' strategy: keep maximum allowable cash (minimum deposit)
+    L = maxLoanAtPrice;
   }
 
   L = Math.max(0, L);
   const scheme = eligibleForSchemeAtPrice && L > L80 + 1;
-  const lmi = (!scheme && L > L80 + 1) ? estimateLmi(P, L) : 0;
+  const lmi = (!scheme && s.allowLmi && L > L80 + 1) ? estimateLmi(P, L) : 0;
 
-  // If LMI applies in 'set' strategy, adjust L if possible so user still keeps target cash
   const deposit = P - L;
   const kept = S - deposit - D - C - lmi;
   const monthly = pmt(L, s.rate, s.years);
   const fortnightly = monthly / 2;
   const limit = scheme ? M * (E + monthly) : null;
-  const houseLimit = scheme ? limit - O : null;
+  const houseLimit = scheme ? Math.max(0, limit - O) : null;
   const totalRunning = s.running + strataMonthly;
   const left = payMo + rentMo - monthly - totalRunning;
 
@@ -203,125 +226,60 @@ export function calc(P, s, overrides = {}) {
     saved = monthly * s.years * 12 - fortnightly * n;
   }
 
-  const minPct = eligibleForSchemeAtPrice ? 5 : Math.round((1 - nonSchemeMaxLvr) * 100);
   const minDepAmount = (minPct / 100) * P;
-  const extraDep = deposit - minDepAmount;
+  const extraDep = Math.max(0, deposit - minDepAmount);
 
-  const shortfall = -kept;
-  let status, verdictTitle, verdictBody;
-  if (kept < 0) {
-    status = 'bad';
-    verdictTitle = `${money(shortfall)} short`;
-    const m = payMo > 0 ? Math.ceil(shortfall / payMo) : null;
-    verdictBody = m
-      ? `At ${money(payMo)}/mo saved, that's about ${m} more month${m > 1 ? 's' : ''} of saving.`
-      : 'Lower the price, increase loan, or add savings.';
-  } else if (s.strategy === 'loan' && L > s.maxLoan) {
-    status = 'warn';
-    verdictTitle = `Loan is ${money(L - s.maxLoan)} over pre-approval`;
-    verdictBody = `Target loan of ${money(L)} exceeds your broker's ${money(s.maxLoan)} maximum loan limit.`;
-  } else if (left < 0) {
-    status = 'warn';
-    verdictTitle = 'Repayments are over budget';
-    verdictBody = `${money(-left)} a month more than your housing budget, freed-up rent/board and running costs cover.`;
-  } else if (s.strategy === 'max' && mode === 'rule') {
-    status = 'info';
-    verdictTitle = 'Works, with a bigger deposit';
-    verdictBody = `The hold-back rule caps your total cash at ${money(limit)}${O > 0 ? `, including ${money(O)} other cash` : ''}, so ${money(extraDep)} extra goes into the deposit.`;
-  } else if (limited === 'rule') {
-    status = 'info';
-    verdictTitle = `You can keep up to ${money(kept)}`;
-    verdictBody = `The hold-back rule caps your total cash at ${money(limit)} on this loan${O > 0 ? `, including ${money(O)} other cash` : ''}, so the rest goes into the deposit.`;
-  } else if (s.strategy === 'loan' && limited === 'min') {
-    status = 'info';
-    verdictTitle = `Loan capped at ${money(L)} (${100 - minPct}% LVR)`;
-    verdictBody = `Minimum ${minPct}% deposit (${money(minDepAmount)}) applies at this price. You keep ${money(kept)}.`;
-  } else if (limited === 'min' || limited === 'maxloan') {
-    status = 'info';
-    verdictTitle = `You can keep ${money(kept)}, not ${money(target)}`;
-    verdictBody = limited === 'min'
-      ? `The deposit can't go below ${minPct}% (${money(minDepAmount)}), so this is the most cash left at this price.`
-      : `Your broker's ${money(s.maxLoan)} loan limit requires a ${money(deposit)} deposit at this price.`;
-  } else if (s.strategy === 'loan') {
-    status = 'good';
-    verdictTitle = `Borrowing ${money(L)} leaves ${money(kept)} cash`;
-    verdictBody = `${money(deposit)} (${(deposit / P * 100).toFixed(1)}%) goes into the deposit at this price.`;
-  } else if (s.strategy === 'set') {
-    status = 'good';
-    verdictTitle = `You keep ${money(kept)}`;
-    verdictBody = `${money(deposit)} (${(deposit / P * 100).toFixed(1)}%) goes into the deposit.`;
-  } else {
-    status = 'good';
-    verdictTitle = 'This price works';
-    verdictBody = !scheme
-      ? `You keep ${money(kept)} after a ${(deposit / P * 100).toFixed(0)}% deposit${lmi > 0 ? ` and ${money(lmi)} est. LMI` : ''}.`
-      : O > 0
-        ? `You keep ${money(kept)}. With ${money(O)} other cash, that's ${money(kept + O)} of your ${money(limit)} hold-back limit.`
-        : `You keep ${money(kept)}, under your ${money(limit)} hold-back limit.`;
-  }
+  const status = kept < 0 ? 'bad' : (s.showBudget && left < 0) ? 'warn' : 'good';
 
+  // Factual calculation notes only (no financial advice)
   const notes = [];
   const stateInfo = STATES[stateCode] || STATES.NSW;
   const regionName = stateInfo.hasRegions
     ? (region === 'regional' ? stateInfo.regionalLabel : stateInfo.metroLabel)
     : stateInfo.name;
 
-  if (scheme && O > 0) {
-    notes.push(`The hold-back rule counts your ${money(O)} of other cash too, so you can keep up to ${money(Math.max(0, houseLimit))} from house savings.`);
+  if (scheme && limitedByHoldback) {
+    notes.push(`5% scheme hold-back rule caps max cash kept at ${money(houseLimit)}${O > 0 ? ` (after counting ${money(O)} other cash)` : ''}, with ${money(extraDep)} extra going to the deposit.`);
+  } else if (usesScheme && L <= L80 + 1 && P <= schemeCap) {
+    notes.push('At 20%+ deposit (80% LVR or lower), the 5% scheme and hold-back cap do not apply.');
+  } else if (usesScheme && P > schemeCap) {
+    notes.push(`Above the ${short(schemeCap)} 5% scheme cap in ${regionName}; hold-back rule does not apply.`);
   }
-  if (usesScheme && mode === 'twenty') {
-    notes.push('With a 20% deposit you don\'t need the 5% deposit scheme, so there\'s no hold-back limit and no LMI.');
+  if (!scheme && lmi > 0) {
+    notes.push(`Includes ~${money(lmi)} estimated LMI at ${(L / P * 100).toFixed(1)}% LVR.`);
   }
-  if (usesScheme && mode === 'priceCap') {
-    notes.push(`The 5% deposit scheme caps at ${short(schemeCap)} in ${regionName}, so this assumes a ${minPct}% minimum deposit${lmi > 0 ? ` (plus ~${money(lmi)} LMI)` : ''}.`);
-  }
-  if (!usesScheme && lmi > 0) {
-    notes.push(`At ${(L / P * 100).toFixed(1)}% LVR without a guarantee scheme, estimated LMI is ~${money(lmi)}. Reaching a 20% deposit (${money(0.2 * P)}) avoids LMI.`);
-  }
-  if (capped && s.strategy !== 'loan') {
-    notes.push(`The loan is capped at your broker's maximum of ${money(s.maxLoan)}, so the deposit is larger.`);
+  if (cappedByMaxLoan) {
+    notes.push(`Loan is capped at your ${money(s.maxLoan)} pre-approved maximum.`);
   }
   const dutyNote = getDutyNote(P, isFhb, stateCode);
   if (dutyNote) notes.push(dutyNote);
   if (strataMonthly > 0) {
-    notes.push(`Includes ${money(strataQtr)}/qtr strata (${money(strataMonthly)}/mo) on top of ${money(s.running)}/mo running costs.`);
-  }
-  if (kept >= 0 && scheme && s.strategy === 'max') {
-    notes.push(`Keep about $20–30k of the ${money(kept)} as an emergency fund. The rest can sit in the offset until you renovate.`);
-  }
-  if (s.strategy === 'set' && kept >= 0 && extraDep > 1 && !scheme) {
-    notes.push('Keeping extra deposit funds above 20% in an offset account saves the same interest while keeping your cash accessible.');
-  } else if (s.strategy === 'set' && kept >= 0 && extraDep > 1 && scheme) {
-    notes.push('Keeping the extra deposit money in an offset account instead saves nearly the same interest, and you can still use it later.');
-  }
-  if ((s.strategy === 'set' || s.strategy === 'loan') && kept >= 0 && kept < 15000) {
-    notes.push('That leaves very little for emergencies or repairs after you move in.');
+    notes.push(`Includes ${money(strataQtr)}/qtr strata (${money(strataMonthly)}/mo).`);
   }
 
   return {
     P, S, D, fullD, C, L, lmi, deposit, kept, monthly, fortnightly,
-    limit, left, mode, capped, scheme, schemeCap, fnYears, saved,
-    limited, target, O, houseLimit, extraDep, minPct,
-    strataQtr, strataMonthly, totalRunning, payMo, rentMo,
+    limit, left, mode, capped: cappedByMaxLoan, scheme, schemeCap, fnYears, saved,
+    O, houseLimit, extraDep, minPct,
+    minDepAtPrice, maxDepFromSavings, minLoanAtPrice, maxLoanAtPrice, maxKeepAtPrice,
+    strataQtr, strataMonthly, strataFortnightly, totalRunning, payMo, rentMo,
     buyerType, isFhb, usesScheme,
-    status, verdictTitle, verdictBody, notes, stateCode, region
+    status, notes, stateCode, region
   };
 }
 
 /**
  * Solves for the maximum purchase price (rounded down to nearest $5k) where the buyer
- * is not short on cash (and keeps at least keepTarget in 'set' mode) and stays within maxLoan.
+ * has enough savings for the minimum required deposit + stamp duty + costs and stays within maxLoan.
  */
 export function solveMaxPrice(s) {
   let best = 100000;
-  const minKeep = s.strategy === 'set' ? Math.max(0, s.keepTarget || 0) : 0;
-  for (let p = 150000; p <= 5000000; p += 5000) {
-    const r = calc(p, s);
-    const loanOk = s.strategy === 'loan' ? (r.L <= (s.loanTarget || s.maxLoan) + 1) : (r.L <= s.maxLoan + 1);
-    if (r.kept >= minKeep && loanOk) {
+  const ceilingState = Object.assign({}, s, { strategy: 'max' });
+  for (let p = 150000; p <= 10000000; p += 5000) {
+    const r = calc(p, ceilingState);
+    if (r.kept >= 0 && r.L <= s.maxLoan + 1) {
       best = p;
     } else if (p > best + 250000) {
-      // Stop searching once well past the cliff
       break;
     }
   }
@@ -329,37 +287,68 @@ export function solveMaxPrice(s) {
 }
 
 /**
- * Dynamically calculates sensible slider bounds, 8 quick-select chips, and 9 ladder steps
- * tailored around the buyer's financial capacity & state cap.
+ * Picks a proportional, human-friendly price increment for an 8-row comparison table
+ * so the 7 steps span ~38%–45% of the top price (e.g. $25k at $700k, $50k at $1M,
+ * $75k at $1.4M, $150k at $2.5M, $250k at $5M).
+ */
+export function getAutoLadderStep(topPrice) {
+  const p = Math.max(250000, Number(topPrice) || 1000000);
+  if (p <= 800000) return 25000;
+  if (p <= 1200000) return 50000;
+  if (p <= 1650000) return 75000;
+  if (p <= 2200000) return 100000;
+  if (p <= 3000000) return 150000;
+  if (p <= 3800000) return 200000;
+  if (p <= 6000000) return 250000;
+  return 500000;
+}
+
+/**
+ * Dynamically calculates sensible slider bounds (strictly capped at maxAfford),
+ * quick-select chips, and an 8-row price ladder.
  */
 export function getDynamicPriceBounds(s) {
   const maxAfford = solveMaxPrice(s);
-  const { usesScheme } = getBuyerFlags(s);
-  const schemeCap = getSchemeCap(s.state, s.region);
+  const topPrice = (s.ladderMax && s.ladderMax >= 200000)
+    ? Math.round(s.ladderMax)
+    : maxAfford;
+  const autoStep = getAutoLadderStep(topPrice);
+  const step = (s.ladderStep && s.ladderStep >= 10000) ? Math.round(s.ladderStep) : autoStep;
 
-  const refPrice = usesScheme ? Math.min(maxAfford, schemeCap * 1.1) : maxAfford;
-  const anchor = Math.max(250000, Math.round(refPrice / 50000) * 50000);
-  const step = anchor >= 750000 ? 50000 : 25000;
+  // Build 8 clean rows ending at topPrice, snapping lower rows to clean multiples of `step`
+  const rows = [];
+  const snappedTop = Math.floor(topPrice / step) * step;
+  const isExactMultiple = (topPrice - snappedTop) < 5000;
 
-  const startChip = Math.max(200000, anchor - 5 * step);
-  const chips = [];
-  for (let i = 0; i < 7; i++) {
-    chips.push(startChip + i * step);
+  if (isExactMultiple) {
+    for (let i = 7; i >= 0; i--) {
+      rows.push(Math.max(100000, snappedTop - i * step));
+    }
+  } else {
+    for (let i = 6; i >= 0; i--) {
+      rows.push(Math.max(100000, snappedTop - i * step));
+    }
+    rows.push(topPrice);
   }
 
-  const sliderMin = Math.max(150000, chips[0] - 3 * step);
-  const sliderMax = Math.min(5000000, Math.max(maxAfford + 3 * step, chips[chips.length - 1] + 4 * step));
+  const uniqueRows = [...new Set(rows)].sort((a, b) => a - b);
+  while (uniqueRows.length < 8 && uniqueRows[0] > 100000) {
+    uniqueRows.unshift(Math.max(100000, uniqueRows[0] - step));
+  }
+  const ladder = uniqueRows.slice(-8);
 
-  const ladderPrices = new Set(chips);
-  ladderPrices.add(chips[chips.length - 1] + step);
-  if (maxAfford >= 150000) ladderPrices.add(maxAfford);
-  ladderPrices.add(Math.round(s.price));
+  // Slider is strictly bounded by what is possible: [sliderMin, maxAfford]
+  const sliderMin = Math.max(100000, Math.min(ladder[0] - step, maxAfford - 7 * step));
+  const sliderMax = Math.max(sliderMin, maxAfford);
 
   return {
     maxAfford,
+    topPrice,
+    autoStep,
+    step,
     sliderMin,
     sliderMax,
-    chips,
-    ladder: [...ladderPrices].sort((a, b) => a - b)
+    chips: ladder,
+    ladder
   };
 }
