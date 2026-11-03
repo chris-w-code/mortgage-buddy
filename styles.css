@@ -351,6 +351,7 @@ tbody tr:last-child td{border-bottom:none}
 .wide-only{display:none}
 @media (min-width:720px){.wide-only{display:table-cell}table{font-size:.86rem}th,td{padding-inline:12px}}
 .foot{color:var(--muted);font-size:.78rem;max-width:76ch;margin:0}
+.feedback a{color:var(--accent);font-weight:600}
 
 /* Broker Setup Sub-panel inside Modal */
 details.broker-setup{background:var(--surface-subtle);border:1px dashed var(--line-strong);border-radius:18px;padding:14px 16px}
