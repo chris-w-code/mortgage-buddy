@@ -4,6 +4,10 @@ import {
   calc, getDynamicPriceBounds, getBuyerFlags, convertFreqAmount, toMonthly
 } from './calc.js';
 import { decodeSharePayload, buildShareUrl, buildBrokerInquiryMailto } from './share.js';
+import {
+  loadBrokerProfile, saveBrokerProfile, hasBrokerIdentity, isBrokerOnboarded,
+  buildClientHandOffEmail, buildEmailComposeLinks
+} from './broker.js';
 
 (function () {
   const $ = id => document.getElementById(id);
@@ -13,6 +17,8 @@ import { decodeSharePayload, buildShareUrl, buildBrokerInquiryMailto } from './s
   let s = structuredClone(DEFAULTS);
   let viewMode = 'default';
   let activeTab = 'ladder';
+  let brokerStep = 1;
+  let emailEditedManually = false;
 
   // Keys that live inside Setup / Price card (excluding the 3 synchronized split boxes which display live r.kept, r.deposit, r.L)
   const SPLIT_KEYS = ['keepTarget', 'depositTarget', 'loanTarget'];
@@ -26,6 +32,12 @@ import { decodeSharePayload, buildShareUrl, buildBrokerInquiryMailto } from './s
         mergeState(saved);
       }
     } catch (e) {}
+
+    // Load persistent broker profile from computer storage
+    const savedProfile = loadBrokerProfile();
+    if (isBrokerOnboarded(savedProfile)) {
+      s.broker = Object.assign({}, DEFAULTS.broker, s.broker, savedProfile);
+    }
 
     if (window.location.hash && window.location.hash.startsWith('#s=')) {
       const token = window.location.hash.slice(3);
@@ -47,9 +59,12 @@ import { decodeSharePayload, buildShareUrl, buildBrokerInquiryMailto } from './s
     if (typeof src.fhb === 'boolean') s.fhb = src.fhb;
     if (typeof src.allowLmi === 'boolean') s.allowLmi = src.allowLmi;
     if (typeof src.showBudget === 'boolean') s.showBudget = src.showBudget;
-    if (['fhb_scheme', 'fhb_standard', 'standard'].includes(src.buyerType)) {
+    if (src.buyerType === 'standard' || src.buyerType === 'fhb_scheme') {
       s.buyerType = src.buyerType;
-      s.fhb = src.buyerType !== 'standard';
+      s.fhb = src.buyerType === 'fhb_scheme';
+    } else if (src.buyerType === 'fhb_standard') {
+      s.buyerType = 'fhb_scheme';
+      s.fhb = true;
     } else if (typeof src.fhb === 'boolean') {
       s.buyerType = src.fhb ? 'fhb_scheme' : 'standard';
     }
@@ -110,6 +125,126 @@ import { decodeSharePayload, buildShareUrl, buildBrokerInquiryMailto } from './s
     }
   }
 
+  function setBrokerStep(step) {
+    brokerStep = step === 1 || step === 2 || step === 3 ? step : 1;
+    $('brokerStep1').hidden = brokerStep !== 1;
+    $('brokerStep2').hidden = brokerStep !== 2;
+    $('brokerStep3').hidden = brokerStep !== 3;
+
+    $('brokerFoot1').hidden = brokerStep !== 1;
+    $('brokerFoot2').hidden = brokerStep !== 2;
+    $('brokerFoot3').hidden = brokerStep !== 3;
+
+    $('brokerTab1').setAttribute('aria-selected', String(brokerStep === 1));
+    $('brokerTab2').setAttribute('aria-selected', String(brokerStep === 2));
+    $('brokerTab3').setAttribute('aria-selected', String(brokerStep === 3));
+
+    if (brokerStep === 3) {
+      refreshBrokerEmailComposer();
+    } else {
+      renderBrokerModalState();
+    }
+  }
+
+  function toggleBrokerModal(forceOpen, initialStep) {
+    const backdrop = $('brokerModalBackdrop');
+    const btn = $('btnBrokerFlow');
+    const nextOpen = typeof forceOpen === 'boolean' ? forceOpen : backdrop.hidden;
+    backdrop.hidden = !nextOpen;
+    btn.setAttribute('aria-expanded', String(nextOpen));
+    document.body.style.overflow = nextOpen ? 'hidden' : '';
+    if (nextOpen) {
+      const defaultStep = initialStep || (isBrokerOnboarded(s.broker) ? 2 : 1);
+      setBrokerStep(defaultStep);
+    }
+  }
+
+  function refreshBrokerEmailComposer(forceResetText = false) {
+    const bounds = getDynamicPriceBounds(s);
+    const shareUrl = buildShareUrl(s, { includeShortlist: true, clientMode: true });
+    $('clientShareUrlInput').value = shareUrl;
+
+    if (!emailEditedManually || forceResetText) {
+      const tpl = buildClientHandOffEmail(s, bounds.maxAfford, shareUrl);
+      if (document.activeElement !== $('emailToInput')) {
+        $('emailToInput').value = tpl.to;
+      }
+      if (document.activeElement !== $('emailSubjectInput')) {
+        $('emailSubjectInput').value = tpl.subject;
+      }
+      if (document.activeElement !== $('emailBodyInput')) {
+        $('emailBodyInput').value = tpl.body;
+      }
+      if (forceResetText) emailEditedManually = false;
+    }
+    syncEmailLaunchHrefs();
+  }
+
+  function syncEmailLaunchHrefs() {
+    const links = buildEmailComposeLinks({
+      to: $('emailToInput').value,
+      subject: $('emailSubjectInput').value,
+      body: $('emailBodyInput').value
+    });
+    $('btnEmailMailto').href = links.mailtoHref;
+    $('btnEmailOutlook').href = links.outlookHref;
+    $('btnEmailGmail').href = links.gmailHref;
+  }
+
+  function renderBrokerModalState() {
+    const st = STATES[s.state] || STATES.NSW;
+    const { buyerType, usesScheme } = getBuyerFlags(s);
+
+    $('br_buyerType').value = buyerType;
+    $('br_state').value = s.state;
+
+    const regEl = $('br_region');
+    if (st.hasRegions && usesScheme) {
+      regEl.hidden = false;
+      regEl.innerHTML = [
+        `<option value="metro">${st.metroLabel}</option>`,
+        `<option value="regional">${st.regionalLabel}</option>`
+      ].join('');
+      regEl.value = s.region;
+    } else {
+      regEl.hidden = true;
+    }
+
+    const cap = getSchemeCap(s.state, s.region);
+    $('br_capPill').hidden = !usesScheme;
+    $('br_capPill').textContent = `5% scheme cap: ${short(cap)}`;
+    $('br_lmiCheckWrap').hidden = usesScheme;
+    $('br_allowLmi').checked = !!s.allowLmi;
+
+    const numMap = {
+      br_savings: Math.round(s.savings || 0).toLocaleString('en-AU'),
+      br_maxLoan: Math.round(s.maxLoan || 0).toLocaleString('en-AU'),
+      br_costs: Math.round(s.costs || 0).toLocaleString('en-AU'),
+      br_rate: s.rate,
+      br_years: s.years
+    };
+    for (const [id, val] of Object.entries(numMap)) {
+      const el = $(id);
+      if (el && document.activeElement !== el) el.value = val;
+    }
+
+    const bounds = getDynamicPriceBounds(s);
+    const rMax = calc(bounds.maxAfford, Object.assign({}, s, { strategy: 'max' }));
+    $('br_sanityMaxPrice').textContent = short(bounds.maxAfford);
+    $('br_sanityDuty').textContent = money(rMax.D);
+    $('br_sanityKeep').textContent = money(Math.max(0, rMax.kept));
+
+    const hasIdentity = hasBrokerIdentity(s.broker);
+    $('brokerProfileStatusNote').textContent = hasIdentity
+      ? `Broker profile active: ${s.broker.brokerName || s.broker.company}${s.broker.email ? ` (${s.broker.email})` : ''}`
+      : 'Broker profile skipped — you can add your details anytime in Step 1.';
+
+    $('btnBrokerFlow').hidden = viewMode === 'client';
+    $('btnBrokerFlowLabel').textContent = s.broker && s.broker.clientName
+      ? `Broker: ${s.broker.clientName}`
+      : 'Broker Mode';
+  }
+
   function toggleLadderMenu(forceOpen) {
     const pop = $('ladderMenuPopover');
     const btn = $('btnLadderMenu');
@@ -147,7 +282,7 @@ import { decodeSharePayload, buildShareUrl, buildBrokerInquiryMailto } from './s
 
   function renderBrokerBanner(r) {
     const banner = $('brokerBanner');
-    const hasBroker = Boolean(s.broker && (s.broker.enabled || s.broker.brokerName || s.broker.company));
+    const hasBroker = hasBrokerIdentity(s.broker);
     if (!hasBroker) {
       banner.hidden = true;
       return;
@@ -175,7 +310,7 @@ import { decodeSharePayload, buildShareUrl, buildBrokerInquiryMailto } from './s
 
   function renderProfileAndState() {
     const st = STATES[s.state] || STATES.NSW;
-    const { buyerType, isFhb, usesScheme } = getBuyerFlags(s);
+    const { buyerType, usesScheme } = getBuyerFlags(s);
 
     $('buyerTypeSelect').value = buyerType;
     $('stateSelect').value = s.state;
@@ -198,12 +333,11 @@ import { decodeSharePayload, buildShareUrl, buildBrokerInquiryMailto } from './s
 
     const profileLabel = usesScheme
       ? 'First Home (5% Scheme)'
-      : isFhb
-        ? 'First Home Buyer'
-        : 'Next Home / Standard';
-    $('eyebrowState').textContent = `${s.state} · ${profileLabel}`;
+      : 'Standard Buyer';
+    const clientPrefix = (s.broker && s.broker.clientName) ? `Prepared for ${s.broker.clientName} · ` : '';
+    $('eyebrowState').textContent = `${clientPrefix}${s.state} · ${profileLabel}`;
 
-    const shortProfile = usesScheme ? 'FHB 5%' : isFhb ? 'FHB' : 'Standard';
+    const shortProfile = usesScheme ? 'FHB 5%' : 'Standard';
     $('baseProfilePill').textContent = `${s.state} · ${shortProfile}`;
 
     // Show/hide scheme-specific vs standard buyer fields inside Setup
@@ -256,7 +390,7 @@ import { decodeSharePayload, buildShareUrl, buildBrokerInquiryMailto } from './s
       : 'Per month once you move in';
 
     // Broker setup inputs
-    const bFields = ['clientName', 'brokerName', 'company', 'acl', 'phone', 'email', 'bookingUrl', 'accent'];
+    const bFields = ['clientName', 'clientEmail', 'brokerName', 'company', 'acl', 'phone', 'email', 'bookingUrl'];
     bFields.forEach(f => {
       const el = $('br_' + f);
       if (el && document.activeElement !== el) {
@@ -266,9 +400,7 @@ import { decodeSharePayload, buildShareUrl, buildBrokerInquiryMailto } from './s
     if ($('br_minDepPct')) {
       $('br_minDepPct').value = String((s.broker && s.broker.minDepPct) || 5);
     }
-    if ($('brokerPanel')) {
-      $('brokerPanel').hidden = viewMode === 'client';
-    }
+    renderBrokerModalState();
   }
 
   function renderSplitControls(r) {
@@ -641,9 +773,9 @@ import { decodeSharePayload, buildShareUrl, buildBrokerInquiryMailto } from './s
 
   $('buyerTypeSelect').addEventListener('change', e => {
     const bt = e.target.value;
-    if (['fhb_scheme', 'fhb_standard', 'standard'].includes(bt)) {
+    if (bt === 'fhb_scheme' || bt === 'standard') {
       s.buyerType = bt;
-      s.fhb = bt !== 'standard';
+      s.fhb = bt === 'fhb_scheme';
       update();
     }
   });
@@ -692,26 +824,175 @@ import { decodeSharePayload, buildShareUrl, buildBrokerInquiryMailto } from './s
     showToast(`Saved "${name}" to your shortlist`);
   });
 
-  // Broker Setup fields
-  ['clientName', 'brokerName', 'company', 'acl', 'phone', 'email', 'bookingUrl', 'accent'].forEach(f => {
+  // Broker Setup fields (Step 1: Broker Identity & Step 2: Client Details)
+  ['brokerName', 'company', 'acl', 'phone', 'email', 'bookingUrl'].forEach(f => {
     const el = $('br_' + f);
     if (!el) return;
     el.addEventListener('input', () => {
       s.broker = s.broker || structuredClone(DEFAULTS.broker);
       s.broker[f] = el.value.trim();
-      s.broker.enabled = Boolean(s.broker.brokerName || s.broker.company || s.broker.clientName);
+      s.broker.enabled = hasBrokerIdentity(s.broker);
+      saveBrokerProfile(s.broker);
       save();
       render();
+      renderBrokerModalState();
     });
   });
 
-  if ($('br_minDepPct')) {
-    $('br_minDepPct').addEventListener('change', e => {
+  ['clientName', 'clientEmail'].forEach(f => {
+    const el = $('br_' + f);
+    if (!el) return;
+    el.addEventListener('input', () => {
       s.broker = s.broker || structuredClone(DEFAULTS.broker);
-      s.broker.minDepPct = Math.max(2, Math.min(50, Number(e.target.value) || 5));
-      update();
+      s.broker[f] = el.value.trim();
+      if (f === 'clientEmail' && document.activeElement !== $('emailToInput')) {
+        $('emailToInput').value = s.broker.clientEmail;
+      }
+      save();
+      render();
+      renderBrokerModalState();
     });
+  });
+
+  // Broker Step 2 financial & rule controls synced to main state
+  ['savings', 'maxLoan', 'costs', 'rate', 'years'].forEach(k => {
+    const el = $('br_' + k);
+    if (!el) return;
+    el.addEventListener('input', () => {
+      s[k] = parseNum(el.value);
+      const bounds = getDynamicPriceBounds(s);
+      if (s.price > bounds.maxAfford) s.price = bounds.maxAfford;
+      save();
+      render();
+      renderBrokerModalState();
+    });
+    el.addEventListener('blur', () => update());
+    el.addEventListener('focus', () => { setTimeout(() => { try { el.select(); } catch (e) {} }, 0); });
+  });
+
+  $('br_buyerType').addEventListener('change', e => {
+    const bt = e.target.value;
+    if (bt === 'fhb_scheme' || bt === 'standard') {
+      s.buyerType = bt;
+      s.fhb = bt === 'fhb_scheme';
+      update();
+    }
+  });
+
+  $('br_state').addEventListener('change', e => {
+    const newState = e.target.value;
+    if (STATES[newState]) {
+      s.state = newState;
+      s.region = 'metro';
+      update();
+    }
+  });
+
+  $('br_region').addEventListener('change', e => {
+    s.region = e.target.value === 'regional' ? 'regional' : 'metro';
+    update();
+  });
+
+  $('br_allowLmi').addEventListener('change', e => {
+    s.allowLmi = e.target.checked;
+    update();
+  });
+
+  $('br_minDepPct').addEventListener('change', e => {
+    s.broker = s.broker || structuredClone(DEFAULTS.broker);
+    s.broker.minDepPct = Math.max(2, Math.min(50, Number(e.target.value) || 5));
+    update();
+  });
+
+  // Broker Modal Navigation & Skip Actions
+  $('btnBrokerFlow').addEventListener('click', () => toggleBrokerModal(true));
+  $('btnCloseBrokerX').addEventListener('click', () => toggleBrokerModal(false));
+  $('brokerModalBackdrop').addEventListener('click', e => {
+    if (e.target === $('brokerModalBackdrop')) toggleBrokerModal(false);
+  });
+
+  function skipBrokerStep1() {
+    s.broker = s.broker || structuredClone(DEFAULTS.broker);
+    s.broker.skipped = true;
+    saveBrokerProfile(s.broker);
+    save();
+    setBrokerStep(2);
+    showToast('Skipped broker details — you can sort them out anytime in Step 1.');
   }
+
+  $('btnBrokerSkipTop').addEventListener('click', skipBrokerStep1);
+  $('btnBrokerSkipStep1').addEventListener('click', skipBrokerStep1);
+
+  $('btnBrokerNext1').addEventListener('click', () => {
+    s.broker = s.broker || structuredClone(DEFAULTS.broker);
+    s.broker.enabled = hasBrokerIdentity(s.broker);
+    saveBrokerProfile(s.broker);
+    save();
+    setBrokerStep(2);
+  });
+
+  $('btnBrokerBack2').addEventListener('click', () => setBrokerStep(1));
+  $('btnBrokerNext2').addEventListener('click', () => {
+    const bounds = getDynamicPriceBounds(s);
+    s.price = bounds.maxAfford;
+    update();
+    setBrokerStep(3);
+  });
+
+  $('btnBrokerBack3').addEventListener('click', () => setBrokerStep(2));
+  $('btnBrokerDone').addEventListener('click', () => toggleBrokerModal(false));
+
+  function resetClientForNewClient() {
+    const savedProfile = loadBrokerProfile();
+    const keepBroker = Object.assign({}, DEFAULTS.broker, savedProfile, {
+      enabled: hasBrokerIdentity(savedProfile),
+      clientName: '',
+      clientEmail: '',
+      minDepPct: 5
+    });
+    s = Object.assign(structuredClone(DEFAULTS), { broker: keepBroker });
+    emailEditedManually = false;
+    window.history.replaceState(null, '', window.location.pathname);
+    update();
+    setBrokerStep(2);
+    showToast('Cleared client numbers — ready for next client');
+  }
+
+  $('btnNewClientReset').addEventListener('click', resetClientForNewClient);
+  $('btnBrokerNewClient3').addEventListener('click', resetClientForNewClient);
+
+  // Desktop Email Composer & Copy Actions
+  $('emailToInput').addEventListener('input', () => {
+    s.broker.clientEmail = $('emailToInput').value.trim();
+    save();
+    syncEmailLaunchHrefs();
+  });
+  $('emailSubjectInput').addEventListener('input', () => {
+    emailEditedManually = true;
+    syncEmailLaunchHrefs();
+  });
+  $('emailBodyInput').addEventListener('input', () => {
+    emailEditedManually = true;
+    syncEmailLaunchHrefs();
+  });
+
+  $('btnResetEmailTemplate').addEventListener('click', () => {
+    refreshBrokerEmailComposer(true);
+    showToast('Email template refreshed with latest numbers');
+  });
+
+  $('btnCopyEmailSubject').addEventListener('click', () => {
+    copyUrlToClipboard($('emailSubjectInput').value, 'Email subject copied!');
+  });
+
+  $('btnCopyEmailBody').addEventListener('click', () => {
+    copyUrlToClipboard($('emailBodyInput').value, 'Email body copied — paste into Outlook, Gmail, or your CRM!');
+  });
+
+  $('btnCopyEmailAll').addEventListener('click', () => {
+    const full = `Subject: ${$('emailSubjectInput').value}\n\n${$('emailBodyInput').value}`;
+    copyUrlToClipboard(full, 'Full email (Subject + Body) copied to clipboard!');
+  });
 
   // Share buttons
   $('btnSharePartner').addEventListener('click', () => {
@@ -720,10 +1001,11 @@ import { decodeSharePayload, buildShareUrl, buildBrokerInquiryMailto } from './s
   });
 
   $('btnCopyClientLink').addEventListener('click', () => {
-    s.broker.enabled = true;
+    s.broker.enabled = hasBrokerIdentity(s.broker);
     save();
     const url = buildShareUrl(s, { includeShortlist: true, clientMode: true });
-    copyUrlToClipboard(url, 'Branded Client Link copied to clipboard!');
+    $('clientShareUrlInput').value = url;
+    copyUrlToClipboard(url, 'Client Calculator Link copied to clipboard!');
   });
 
   document.addEventListener('click', e => {
@@ -745,6 +1027,13 @@ import { decodeSharePayload, buildShareUrl, buildBrokerInquiryMailto } from './s
     const tabBtn = e.target.closest('[data-tab]');
     if (tabBtn) {
       setActiveTab(tabBtn.dataset.tab);
+      return;
+    }
+
+    // Broker Onboarding Stepper Pills (1, 2, 3)
+    const brokerStepBtn = e.target.closest('[data-broker-step]');
+    if (brokerStepBtn) {
+      setBrokerStep(Number(brokerStepBtn.dataset.brokerStep) || 1);
       return;
     }
 
@@ -820,6 +1109,10 @@ import { decodeSharePayload, buildShareUrl, buildBrokerInquiryMailto } from './s
       toggleSetupDrawer(false);
       return;
     }
+    if (e.key === 'Escape' && !$('brokerModalBackdrop').hidden) {
+      toggleBrokerModal(false);
+      return;
+    }
     const t = e.target;
     if (t.tagName === 'TR' && t.dataset.p && (e.key === 'Enter' || e.key === ' ')) {
       e.preventDefault();
@@ -828,7 +1121,13 @@ import { decodeSharePayload, buildShareUrl, buildBrokerInquiryMailto } from './s
   });
 
   $('reset').addEventListener('click', () => {
+    const savedProfile = loadBrokerProfile();
     s = structuredClone(DEFAULTS);
+    if (isBrokerOnboarded(savedProfile)) {
+      s.broker = Object.assign({}, DEFAULTS.broker, savedProfile, {
+        enabled: hasBrokerIdentity(savedProfile)
+      });
+    }
     window.history.replaceState(null, '', window.location.pathname);
     update();
     showToast('Reset to default example numbers');
@@ -837,4 +1136,7 @@ import { decodeSharePayload, buildShareUrl, buildBrokerInquiryMailto } from './s
   loadInitialState();
   renderInputs();
   render();
+  if (window.location.hash === '#broker' || new URLSearchParams(window.location.search).get('mode') === 'broker') {
+    toggleBrokerModal(true);
+  }
 })();
