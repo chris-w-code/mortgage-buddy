@@ -353,14 +353,42 @@ tbody tr:last-child td{border-bottom:none}
 .foot{color:var(--muted);font-size:.78rem;max-width:76ch;margin:0}
 .feedback a{color:var(--accent);font-weight:600}
 
-/* Broker Setup Sub-panel inside Modal */
-details.broker-setup{background:var(--surface-subtle);border:1px dashed var(--line-strong);border-radius:18px;padding:14px 16px}
-details.broker-setup>summary{cursor:pointer;list-style:none;display:flex;justify-content:space-between;align-items:center;font-weight:600;font-size:.85rem;color:var(--fg)}
-details.broker-setup>summary::-webkit-details-marker{display:none}
-details.broker-setup>summary::after{content:"Configure →";font-size:.78rem;color:var(--muted)}
-details.broker-setup[open]>summary::after{content:"Hide"}
+/* Broker Onboarding & Desktop Email Composer Modal */
+.modal-sheet-wide{max-width:720px}
+.broker-stepper{display:inline-flex;flex-wrap:wrap;background:var(--surface-subtle);border:1px solid var(--line);border-radius:999px;padding:3px;gap:3px}
+.broker-step-pill{border:none;background:transparent;color:var(--muted);font:600 .76rem var(--body);padding:6px 13px;border-radius:999px;cursor:pointer;transition:background .15s,color .15s}
+.broker-step-pill:hover{color:var(--fg)}
+.broker-step-pill[aria-selected="true"]{background:var(--taupe);color:var(--parchment)}
+
+.broker-skip-banner{background:var(--accent-soft);border:1px solid var(--accent-blush);border-radius:18px;padding:14px 16px;display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:12px}
+.broker-skip-banner strong{display:block;font-size:.86rem;color:var(--fg);margin-bottom:2px}
+
+.broker-client-bar{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:10px;padding:4px 2px}
+
+.broker-sanity-card{background:var(--surface);border:1.5px solid var(--accent-blush);border-radius:18px;padding:14px 16px;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+@media (max-width:520px){.broker-sanity-card{grid-template-columns:1fr}}
+.broker-sanity-card div{display:grid;gap:2px}
+.broker-sanity-card strong{font-family:var(--display);font-size:1.35rem;font-weight:500;letter-spacing:-.03em;color:var(--fg)}
+
+.email-launch-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+@media (max-width:560px){.email-launch-grid{grid-template-columns:1fr}}
+.email-launch-btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;text-decoration:none;text-align:center;font-size:.83rem}
+
+.email-composer{display:grid;gap:10px}
+.email-row{display:flex;align-items:center;gap:8px;background:var(--surface);border:1px solid var(--line-strong);border-radius:12px;padding:6px 10px}
+.email-row label{font-size:.76rem;font-weight:600;color:var(--muted);min-width:52px}
+.email-row input{flex:1;min-width:0;border:none;background:transparent;color:var(--fg);font:500 14px var(--body);padding:4px 0}
+.email-row input:focus{outline:none}
+.email-body-wrap{display:grid;gap:4px}
+.email-textarea{width:100%;font:400 .84rem/1.5 var(--body);color:var(--fg);background:var(--surface);border:1px solid var(--line-strong);border-radius:14px;padding:12px;resize:vertical}
+.email-textarea:focus{outline:none;border-color:var(--accent-blush)}
+
+.email-link-row{display:flex;gap:8px;align-items:center;margin-top:8px}
+@media (max-width:520px){.email-link-row{flex-direction:column;align-items:stretch}}
+.email-link-row input{flex:1;min-width:0;font:500 .8rem var(--body);color:var(--muted);background:var(--surface);border:1px solid var(--line-strong);border-radius:999px;padding:9px 14px;min-height:40px}
+
 .share-bar{display:flex;flex-wrap:wrap;gap:10px;margin-top:12px;align-items:center}
-.toast{position:fixed;bottom:86px;left:50%;transform:translateX(-50%);background:var(--fg);color:var(--bg);padding:10px 20px;border-radius:999px;font:500 .85rem var(--body);box-shadow:0 8px 24px rgba(70,63,58,.28);z-index:120}
+.toast{position:fixed;bottom:86px;left:50%;transform:translateX(-50%);background:var(--fg);color:var(--bg);padding:10px 20px;border-radius:999px;font:500 .85rem var(--body);box-shadow:0 8px 24px rgba(70,63,58,.28);z-index:140}
 @media (min-width:880px){.toast{bottom:28px}}
 
 /* Sticky bottom bar (phones/tablets) */
