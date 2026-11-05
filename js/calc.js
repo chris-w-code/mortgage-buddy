@@ -3,7 +3,7 @@ import { STATES, duty, fullDuty, getSchemeCap, getDutyNote } from './rates.js';
 export const DEFAULTS = {
   state: 'NSW',
   region: 'metro',
-  buyerType: 'fhb_scheme', // 'fhb_scheme' | 'fhb_standard' | 'standard'
+  buyerType: 'fhb_scheme', // 'fhb_scheme' | 'standard'
   allowLmi: false,
   showBudget: false, // Off by default to keep UI simple
   price: 1000000,
@@ -32,7 +32,9 @@ export const DEFAULTS = {
   shortlist: [],
   broker: {
     enabled: false,
+    skipped: false,
     clientName: '',
+    clientEmail: '',
     brokerName: '',
     company: '',
     acl: '',
@@ -106,8 +108,8 @@ export function estimateLmi(P, L) {
 }
 
 export function getBuyerFlags(s) {
-  const bt = s.buyerType || (s.fhb === false ? 'standard' : 'fhb_scheme');
-  const isFhb = bt === 'fhb_scheme' || bt === 'fhb_standard';
+  const bt = s.buyerType === 'standard' || s.fhb === false ? 'standard' : 'fhb_scheme';
+  const isFhb = bt === 'fhb_scheme';
   const usesScheme = bt === 'fhb_scheme';
   return { buyerType: bt, isFhb, usesScheme };
 }

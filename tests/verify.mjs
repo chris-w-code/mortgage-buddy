@@ -8,6 +8,10 @@ import {
   estimateLmi, toMonthly, convertFreqAmount, solveMaxPrice
 } from '../js/calc.js';
 import { encodeSharePayload, decodeSharePayload } from '../js/share.js';
+import {
+  loadBrokerProfile, saveBrokerProfile, hasBrokerIdentity, isBrokerOnboarded,
+  buildClientHandOffEmail, buildEmailComposeLinks
+} from '../js/broker.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const html = fs.readFileSync(path.join(__dirname, '../index.html'), 'utf8');
@@ -30,18 +34,17 @@ for (const code of ['NSW', 'VIC', 'QLD', 'WA', 'SA', 'TAS', 'ACT', 'NT']) {
   assert.ok(capMetro >= capReg, `Metro cap (${capMetro}) >= Regional cap (${capReg}) for ${code}`);
 }
 
-// 2. Verify 3 Buyer Profiles, 5% default minimum deposit, Hold-back cap, and Broker 98% LVR
+// 2. Verify 2 Buyer Profiles (First Home 5% Scheme vs Standard), 5% default minimum deposit, Hold-back cap, and Broker 98% LVR
 const p900 = 900000;
 const rScheme = calc(p900, { ...structuredClone(DEFAULTS), buyerType: 'fhb_scheme', savings: 180000 });
-const rFhbStd = calc(p900, { ...structuredClone(DEFAULTS), buyerType: 'fhb_standard', savings: 180000 });
 const rStd = calc(p900, { ...structuredClone(DEFAULTS), buyerType: 'standard', savings: 180000 });
 
 assert.equal(rScheme.scheme, true, 'fhb_scheme at $900k uses 5% scheme');
-assert.equal(rFhbStd.scheme, false, 'fhb_standard does not use 5% scheme');
-assert.ok(rFhbStd.D < rStd.D, 'fhb_standard gets FHB stamp duty concession at $900k in NSW whereas standard pays full duty');
+assert.equal(rStd.scheme, false, 'standard does not use 5% scheme');
+assert.ok(rScheme.D < rStd.D, 'fhb_scheme gets FHB stamp duty concession at $900k in NSW whereas standard pays full duty');
 assert.equal(rStd.D, fullDuty(p900, 'NSW'), 'standard buyer pays full stamp duty');
 assert.equal(rStd.L, 0.95 * p900, 'Default minimum deposit is 5% (95% LVR)');
-assert.ok(rScheme.maxKeepAtPrice < rFhbStd.maxKeepAtPrice, 'fhb_scheme caps maxKeepAtPrice via hold-back rule whereas fhb_standard does not');
+assert.ok(rScheme.maxKeepAtPrice < rStd.maxKeepAtPrice, 'fhb_scheme caps maxKeepAtPrice via hold-back rule whereas standard does not');
 
 // Verify Cash You Keep can be set all the way down to $0
 const rZeroKeep = calc(p900, { ...structuredClone(DEFAULTS), buyerType: 'fhb_scheme', savings: 120000, strategy: 'set', keepTarget: 0 });
@@ -137,5 +140,67 @@ const b5m = getDynamicPriceBounds({ ...structuredClone(DEFAULTS), ladderMax: 500
 assert.equal(b5m.ladder.length, 8, '$5M auto ladder has 8 rows');
 assert.equal(b5m.ladder[0], 3250000, '$5M auto ladder starts at $3.25M');
 assert.equal(b5m.ladder[7], 5000000, '$5M auto ladder ends at $5.0M');
+
+// 8. Verify Broker Onboarding (Skippable Step 1, Persistent Profile, Desktop Email Hand-Off)
+assert.ok(!html.includes('value="fhb_standard"'), 'index.html should only have fhb_scheme and standard buyerType options');
+
+const mockStore = {
+  _data: {},
+  getItem(k) { return this._data[k] || null; },
+  setItem(k, v) { this._data[k] = String(v); }
+};
+
+// Verify skippable broker profile
+const initialProfile = loadBrokerProfile(mockStore);
+assert.equal(isBrokerOnboarded(initialProfile), false, 'Fresh broker profile is not yet onboarded');
+saveBrokerProfile({ skipped: true }, mockStore);
+const skippedProfile = loadBrokerProfile(mockStore);
+assert.equal(skippedProfile.skipped, true, 'Skipped state persists in storage');
+assert.equal(hasBrokerIdentity(skippedProfile), false, 'Skipped profile has no identity fields');
+assert.equal(isBrokerOnboarded(skippedProfile), true, 'Skipped profile counts as onboarded so future sessions open Step 2');
+
+// Verify filled broker profile
+saveBrokerProfile({
+  brokerName: 'Alex Mercer',
+  company: 'Harbour Mortgage Advisory',
+  email: 'alex@harbour.com.au',
+  phone: '0400 123 456',
+  skipped: false
+}, mockStore);
+const filledProfile = loadBrokerProfile(mockStore);
+assert.equal(hasBrokerIdentity(filledProfile), true, 'Filled profile has broker identity');
+assert.equal(isBrokerOnboarded(filledProfile), true, 'Filled profile is onboarded');
+
+// Verify desktop email composer output & compose links
+const emailState = {
+  ...structuredClone(DEFAULTS),
+  state: 'NSW',
+  buyerType: 'fhb_scheme',
+  savings: 140000,
+  maxLoan: 1100000,
+  rate: 6.25,
+  years: 30,
+  broker: {
+    ...structuredClone(DEFAULTS.broker),
+    ...filledProfile,
+    clientName: 'Sarah & Tom',
+    clientEmail: 'sarah.tom@example.com',
+    minDepPct: 5
+  }
+};
+const emailBounds = getDynamicPriceBounds(emailState);
+const testShareUrl = 'https://chris-w-code.github.io/mortgage-buddy/#s=testtoken';
+const emailTpl = buildClientHandOffEmail(emailState, emailBounds.maxAfford, testShareUrl);
+
+assert.equal(emailTpl.to, 'sarah.tom@example.com');
+assert.ok(emailTpl.subject.includes('Sarah & Tom'), 'Email subject includes client name');
+assert.ok(emailTpl.body.includes('Hi Sarah & Tom,'), 'Email body greets client by name');
+assert.ok(emailTpl.body.includes(testShareUrl), 'Email body contains the client share URL');
+assert.ok(emailTpl.body.includes('Alex Mercer'), 'Email body signs off with broker name when provided');
+
+const composeLinks = buildEmailComposeLinks(emailTpl);
+assert.ok(composeLinks.mailtoHref.startsWith('mailto:sarah.tom%40example.com?subject='), 'Generates valid mailto link');
+assert.ok(composeLinks.gmailHref.startsWith('https://mail.google.com/mail/?view=cm&fs=1&to=sarah.tom%40example.com'), 'Generates valid Gmail compose link');
+assert.ok(composeLinks.outlookHref.startsWith('https://outlook.office.com/mail/deeplink/compose?to=sarah.tom%40example.com'), 'Generates valid Outlook Web compose link');
 
 console.log('All verification assertions passed!');

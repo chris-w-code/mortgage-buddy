@@ -100,8 +100,9 @@ export function decodeSharePayload(encoded) {
         if (isFinite(n)) out[fullKey] = n;
       } else if (fullKey === 'fhb' || fullKey === 'allowLmi' || fullKey === 'showBudget') {
         out[fullKey] = Boolean(val);
-      } else if (fullKey === 'buyerType' && ['fhb_scheme', 'fhb_standard', 'standard'].includes(val)) {
-        out.buyerType = val;
+      } else if (fullKey === 'buyerType' && (val === 'fhb_scheme' || val === 'standard' || val === 'fhb_standard')) {
+        out.buyerType = val === 'standard' ? 'standard' : 'fhb_scheme';
+        out.fhb = out.buyerType === 'fhb_scheme';
       } else if ((fullKey === 'payFreq' || fullKey === 'rentFreq') && (val === 'mo' || val === 'fn')) {
         out[fullKey] = val;
       } else if (fullKey === 'strategy' && ['max', 'set', 'loan', 'deposit'].includes(val)) {
@@ -158,7 +159,7 @@ export function buildBrokerInquiryMailto(s, r, propertyName = '') {
   const subject = `Property check: ${propLabel}${s.broker?.clientName ? ` — ${s.broker.clientName}` : ''}`;
   const lvr = (r.L / r.P * 100).toFixed(1);
   const { isFhb, usesScheme } = getBuyerFlags(s);
-  const profileLabel = usesScheme ? 'FHB (5% Scheme)' : isFhb ? 'FHB (Standard)' : 'Next Home / Standard';
+  const profileLabel = usesScheme ? 'First Home (5% Scheme)' : 'Standard Buyer';
   const bodyLines = [
     `Hi ${s.broker?.brokerName || 'there'},`,
     '',
