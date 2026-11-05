@@ -14,7 +14,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap">
-<link rel="stylesheet" href="./styles.css?v=6">
+<link rel="stylesheet" href="./styles.css?v=7">
 </head>
 <body>
 
@@ -34,6 +34,10 @@
         <button type="button" class="btn-pill btn-pill-blush" id="btnToggleSetup" aria-expanded="false" aria-controls="setupPanel">
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="17" y1="16" x2="23" y2="16"/></svg>
           Edit My Numbers
+        </button>
+        <button type="button" class="btn-pill btn-pill-subtle" id="btnBrokerFlow" aria-expanded="false" aria-controls="brokerModal" title="Mortgage Broker onboarding &amp; client email hand-off">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/></svg>
+          <span id="btnBrokerFlowLabel">Broker Mode</span>
         </button>
         <button type="button" class="btn-pill btn-pill-subtle" id="btnSharePartner" title="Copy a link with your current numbers and property shortlist">
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>
@@ -113,8 +117,7 @@
             <div class="state-select-group">
               <select id="buyerTypeSelect" class="select-pill" aria-label="Buyer profile">
                 <option value="fhb_scheme">First Home (5% Scheme)</option>
-                <option value="fhb_standard">First Home (Standard)</option>
-                <option value="standard">Next Home / Standard Buyer</option>
+                <option value="standard">Standard Buyer</option>
               </select>
               <select id="stateSelect" class="select-pill" aria-label="Australian state or territory">
                 <option value="NSW">NSW</option>
@@ -225,19 +228,148 @@
               </div>
             </div>
           </div>
+        </div>
+      </div>
 
-          <!-- Broker White-Label Setup tucked inside Modal -->
-          <details class="broker-setup" id="brokerPanel">
-            <summary>Broker mode &amp; white-label client link</summary>
+      <div class="modal-foot">
+        <button class="btn" id="reset" type="button">Reset Defaults</button>
+        <span class="foot" id="sumLine" hidden></span>
+        <button type="button" class="btn btn-primary modal-done-btn" id="btnCloseSetup">Save &amp; Done</button>
+      </div>
+    </section>
+  </div>
+
+  <!-- Mortgage Broker Onboarding & Desktop Email Hand-Off Modal -->
+  <div id="brokerModalBackdrop" class="modal-backdrop" hidden>
+    <section id="brokerModal" class="modal-sheet modal-sheet-wide" role="dialog" aria-modal="true" aria-labelledby="brokerModalTitle">
+      <div class="modal-drag-handle" aria-hidden="true"></div>
+      <div class="modal-head">
+        <div>
+          <div class="broker-stepper" role="tablist" aria-label="Broker onboarding steps">
+            <button type="button" role="tab" class="broker-step-pill" id="brokerTab1" data-broker-step="1" aria-selected="true">1. Broker Details (Optional)</button>
+            <button type="button" role="tab" class="broker-step-pill" id="brokerTab2" data-broker-step="2" aria-selected="false">2. Client Pre-Approval</button>
+            <button type="button" role="tab" class="broker-step-pill" id="brokerTab3" data-broker-step="3" aria-selected="false">3. Email to Client</button>
+          </div>
+          <h2 id="brokerModalTitle" style="margin-top:8px">Mortgage Broker Setup &amp; Client Hand-Off</h2>
+        </div>
+        <button type="button" class="modal-close-x" id="btnCloseBrokerX" aria-label="Close broker modal">✕</button>
+      </div>
+
+      <div class="modal-body">
+        <!-- STEP 1: Optional Broker Details (Skippable) -->
+        <div id="brokerStep1" class="setup-sections">
+          <div class="broker-skip-banner">
+            <div>
+              <strong>Your contact details are completely optional</strong>
+              <p class="foot">Add them if you want clients to have a 1-click button to email or call you about a property, or skip for now and sort it out another time.</p>
+            </div>
+            <button type="button" class="btn-sm btn-primary" id="btnBrokerSkipTop">Skip for now →</button>
+          </div>
+
+          <div class="setup-card-group">
+            <h3 class="setup-group-title">Your Broker Contact Details (Saved to Your Computer)</h3>
             <div class="grid-in">
-              <div class="field"><label for="br_clientName">Client name(s)</label><input id="br_clientName" type="text" placeholder="e.g. Sarah &amp; Tom"></div>
-              <div class="field"><label for="br_brokerName">Your name (Broker)</label><input id="br_brokerName" type="text" placeholder="e.g. Alex Mercer"></div>
-              <div class="field"><label for="br_company">Brokerage / firm</label><input id="br_company" type="text" placeholder="e.g. Harbour Mortgage Advisory"></div>
-              <div class="field"><label for="br_acl">ACL / Credit Rep #</label><input id="br_acl" type="text" placeholder="e.g. Credit Rep 512345"></div>
-              <div class="field"><label for="br_phone">Broker phone</label><input id="br_phone" type="tel" placeholder="e.g. 0400 123 456"></div>
-              <div class="field"><label for="br_email">Broker email</label><input id="br_email" type="email" placeholder="e.g. alex@harbour.com.au"></div>
-              <div class="field"><label for="br_bookingUrl">Booking link (optional)</label><input id="br_bookingUrl" type="url" placeholder="https://cal.com/your-link"></div>
-              <div class="field"><label for="br_accent">Brand colour (hex)</label><input id="br_accent" type="text" placeholder="#463F3A"></div>
+              <div class="field">
+                <label for="br_brokerName">Your name (Broker)</label>
+                <input id="br_brokerName" type="text" placeholder="e.g. Alex Mercer">
+              </div>
+              <div class="field">
+                <label for="br_company">Brokerage / firm</label>
+                <input id="br_company" type="text" placeholder="e.g. Harbour Mortgage Advisory">
+              </div>
+              <div class="field">
+                <label for="br_email">Your work email</label>
+                <input id="br_email" type="email" placeholder="e.g. alex@harbour.com.au">
+                <small>Where client property-check inquiries are addressed</small>
+              </div>
+              <div class="field">
+                <label for="br_phone">Your mobile / phone (optional)</label>
+                <input id="br_phone" type="tel" placeholder="e.g. 0400 123 456">
+              </div>
+              <div class="field">
+                <label for="br_bookingUrl">Booking link (optional)</label>
+                <input id="br_bookingUrl" type="url" placeholder="https://cal.com/your-link">
+              </div>
+              <div class="field">
+                <label for="br_acl">ACL / Credit Rep # (optional)</label>
+                <input id="br_acl" type="text" placeholder="e.g. Credit Rep 512345">
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- STEP 2: Client Pre-Approval Setup -->
+        <div id="brokerStep2" class="setup-sections" hidden>
+          <div class="broker-client-bar">
+            <span class="foot" id="brokerProfileStatusNote">Broker profile skipped — you can add your details anytime in Step 1.</span>
+            <button type="button" class="btn-icon" id="btnNewClientReset" title="Clear client fields to start a new client">+ New Client</button>
+          </div>
+
+          <div class="setup-card-group">
+            <h3 class="setup-group-title">Client Details</h3>
+            <div class="grid-in">
+              <div class="field">
+                <label for="br_clientName">Client name(s)</label>
+                <input id="br_clientName" type="text" placeholder="e.g. Sarah &amp; Tom">
+                <small>Personalises the email greeting and calculator header</small>
+              </div>
+              <div class="field">
+                <label for="br_clientEmail">Client email address</label>
+                <input id="br_clientEmail" type="email" placeholder="e.g. sarah.tom@email.com">
+                <small>Pre-fills the recipient when launching your desktop email</small>
+              </div>
+            </div>
+          </div>
+
+          <div class="setup-card-group">
+            <h3 class="setup-group-title">Client Buyer Type &amp; State Rules</h3>
+            <div class="state-select-group">
+              <select id="br_buyerType" class="select-pill" aria-label="Client buyer profile">
+                <option value="fhb_scheme">First Home (5% Scheme)</option>
+                <option value="standard">Standard Buyer</option>
+              </select>
+              <select id="br_state" class="select-pill" aria-label="Client state or territory">
+                <option value="NSW">NSW</option>
+                <option value="VIC">VIC</option>
+                <option value="QLD">QLD</option>
+                <option value="WA">WA</option>
+                <option value="SA">SA</option>
+                <option value="TAS">TAS</option>
+                <option value="ACT">ACT</option>
+                <option value="NT">NT</option>
+              </select>
+              <select id="br_region" class="select-pill" aria-label="Client region"></select>
+              <span class="cap-pill num" id="br_capPill">5% scheme cap: $1.5M</span>
+            </div>
+            <label class="check" id="br_lmiCheckWrap" hidden>
+              <input id="br_allowLmi" type="checkbox">
+              Allow &lt;20% deposit with Lenders Mortgage Insurance (up to 90% LVR)
+            </label>
+          </div>
+
+          <div class="setup-card-group">
+            <h3 class="setup-group-title">Pre-Approved Loan, Savings &amp; Product Settings</h3>
+            <div class="grid-in">
+              <div class="field">
+                <label for="br_savings">Client available savings ($)</label>
+                <input id="br_savings" type="text" inputmode="numeric">
+                <small>Total funds for deposit, stamp duty &amp; cash buffer</small>
+              </div>
+              <div class="field">
+                <label for="br_maxLoan">Max pre-approved loan ($)</label>
+                <input id="br_maxLoan" type="text" inputmode="numeric">
+                <small>Pre-approval borrowing ceiling</small>
+              </div>
+              <div class="field">
+                <label for="br_rate">Interest rate (%)</label>
+                <input id="br_rate" type="text" inputmode="decimal">
+                <small>Quoted product interest rate</small>
+              </div>
+              <div class="field">
+                <label for="br_years">Loan term (years)</label>
+                <input id="br_years" type="text" inputmode="numeric">
+                <small>Standard is 30 years</small>
+              </div>
               <div class="field">
                 <label for="br_minDepPct">Minimum deposit % (Max LVR)</label>
                 <select id="br_minDepPct" class="select-pill" style="width:100%">
@@ -247,21 +379,106 @@
                   <option value="10">10% min deposit (90% LVR)</option>
                   <option value="20">20% min deposit (80% LVR)</option>
                 </select>
-                <small>Only set below 5% if the client's lender offers a 97%–98% LVR product</small>
+                <small>Only set below 5% for 97%–98% LVR products</small>
+              </div>
+              <div class="field">
+                <label for="br_costs">Est. legal, pest &amp; transfer fees ($)</label>
+                <input id="br_costs" type="text" inputmode="numeric">
+                <small>Conveyancing &amp; settlement allowances</small>
               </div>
             </div>
-            <div class="share-bar">
-              <button type="button" class="btn btn-primary" id="btnCopyClientLink">Copy Branded Client Link</button>
-              <small class="foot">Generates a ready-to-use Client View link with your branding banner and pre-approval numbers.</small>
+          </div>
+
+          <!-- Live Sanity Check Summary -->
+          <div class="broker-sanity-card" id="brokerSanityBar">
+            <div>
+              <span class="bento-label">Client Max Purchase Price</span>
+              <strong class="num" id="br_sanityMaxPrice">$1.15M</strong>
             </div>
-          </details>
+            <div>
+              <span class="bento-label">Stamp Duty at Max</span>
+              <strong class="num" id="br_sanityDuty">$46,732</strong>
+            </div>
+            <div>
+              <span class="bento-label">Max Keepable Cash</span>
+              <strong class="num" id="br_sanityKeep">$10,768</strong>
+            </div>
+          </div>
+        </div>
+
+        <!-- STEP 3: Desktop Email Composer & 1-Click Hand-Off -->
+        <div id="brokerStep3" class="setup-sections" hidden>
+          <div class="setup-card-group">
+            <h3 class="setup-group-title">1-Click Desktop Email Launchers</h3>
+            <p class="foot" style="margin-bottom:12px">Launch directly in your computer's email app or webmail with the client's numbers and link pre-filled, or copy into your CRM.</p>
+            <div class="email-launch-grid">
+              <a class="btn btn-primary email-launch-btn" id="btnEmailMailto" href="mailto:">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
+                Open in Default Email App
+              </a>
+              <a class="btn email-launch-btn" id="btnEmailOutlook" href="https://outlook.office.com/" target="_blank" rel="noopener noreferrer">
+                Open in Outlook Web ↗
+              </a>
+              <a class="btn email-launch-btn" id="btnEmailGmail" href="https://mail.google.com/" target="_blank" rel="noopener noreferrer">
+                Open in Gmail ↗
+              </a>
+              <button type="button" class="btn email-launch-btn" id="btnCopyEmailAll">
+                Copy Full Email (Subject + Body)
+              </button>
+            </div>
+          </div>
+
+          <div class="setup-card-group">
+            <div class="lever-head" style="margin-bottom:8px">
+              <h3 class="setup-group-title" style="margin:0">Email Preview &amp; Quick Copy (for Outlook / CRM)</h3>
+              <button type="button" class="btn-icon" id="btnResetEmailTemplate">Reset Email Text</button>
+            </div>
+
+            <div class="email-composer">
+              <div class="email-row">
+                <label for="emailToInput">To</label>
+                <input id="emailToInput" type="email" placeholder="client@email.com (optional)">
+              </div>
+              <div class="email-row">
+                <label for="emailSubjectInput">Subject</label>
+                <input id="emailSubjectInput" type="text">
+                <button type="button" class="btn-icon" id="btnCopyEmailSubject">Copy Subject</button>
+              </div>
+              <div class="email-body-wrap">
+                <div class="label-row" style="margin-bottom:4px">
+                  <label for="emailBodyInput" class="bento-label">Message Body (editable)</label>
+                  <button type="button" class="btn-icon" id="btnCopyEmailBody">Copy Body</button>
+                </div>
+                <textarea id="emailBodyInput" rows="12" class="email-textarea"></textarea>
+              </div>
+            </div>
+          </div>
+
+          <div class="setup-card-group">
+            <h3 class="setup-group-title">Direct Client Calculator Link</h3>
+            <div class="email-link-row">
+              <input id="clientShareUrlInput" type="text" readonly aria-label="Client calculator link">
+              <button type="button" class="btn btn-primary" id="btnCopyClientLink">Copy Link Only</button>
+            </div>
+          </div>
         </div>
       </div>
 
-      <div class="modal-foot">
-        <button class="btn" id="reset" type="button">Reset Defaults</button>
-        <span class="foot" id="sumLine" hidden></span>
-        <button type="button" class="btn btn-primary modal-done-btn" id="btnCloseSetup">Save &amp; Done</button>
+      <!-- Dynamic Step Footer -->
+      <div class="modal-foot" id="brokerFoot1">
+        <button type="button" class="btn" id="btnBrokerSkipStep1">Skip for now</button>
+        <button type="button" class="btn btn-primary modal-done-btn" id="btnBrokerNext1">Save &amp; Continue →</button>
+      </div>
+      <div class="modal-foot" id="brokerFoot2" hidden>
+        <button type="button" class="btn" id="btnBrokerBack2">← Broker Details</button>
+        <button type="button" class="btn btn-primary modal-done-btn" id="btnBrokerNext2">Prepare Client Email →</button>
+      </div>
+      <div class="modal-foot" id="brokerFoot3" hidden>
+        <button type="button" class="btn" id="btnBrokerBack3">← Edit Client Numbers</button>
+        <div style="display:flex;gap:8px;align-items:center">
+          <button type="button" class="btn" id="btnBrokerNewClient3">+ New Client</button>
+          <button type="button" class="btn btn-primary modal-done-btn" id="btnBrokerDone">Done</button>
+        </div>
       </div>
     </section>
   </div>
